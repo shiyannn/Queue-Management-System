@@ -1,0 +1,106 @@
+const Database = require('better-sqlite3');
+const path = require('path');
+
+const dbPath = path.join(__dirname, 'cho_queue.db');
+const db = new Database(dbPath);
+
+// Enable foreign keys and WAL mode for high concurrency
+db.pragma('journal_mode = WAL');
+db.pragma('foreign_keys = ON');
+
+function initializeDatabase() {
+  // Stations / Rooms (3 Doctors + 1 Dental)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS stations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      code TEXT NOT NULL UNIQUE,
+      counter_number INTEGER NOT NULL,
+      type TEXT NOT NULL DEFAULT 'medical', -- 'medical', 'dental'
+      active INTEGER NOT NULL DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      prefix TEXT NOT NULL UNIQUE,
+      department TEXT NOT NULL DEFAULT 'medical', -- 'medical', 'dental'
+      priority_rank INTEGER NOT NULL DEFAULT 1,
+      description TEXT,
+      active INTEGER NOT NULL DEFAULT 1
+    );
+
+    CREATE TABLE IF NOT EXISTS tickets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ticket_number TEXT NOT NULL,
+      department TEXT NOT NULL DEFAULT 'medical', -- 'medical', 'dental'
+      category_id INTEGER,
+      current_station_id INTEGER,
+      patient_name TEXT,
+      notes TEXT,
+      status TEXT NOT NULL DEFAULT 'CALLED', -- 'CALLED', 'SERVING', 'HOLD', 'SKIPPED', 'COMPLETED'
+      queue_date TEXT NOT NULL, -- YYYY-MM-DD
+      sequence_number INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      called_at TEXT,
+      served_at TEXT,
+      completed_at TEXT,
+      FOREIGN KEY (category_id) REFERENCES categories (id),
+      FOREIGN KEY (current_station_id) REFERENCES stations (id)
+    );
+
+    CREATE TABLE IF NOT EXISTS ticket_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ticket_id INTEGER NOT NULL,
+      station_id INTEGER,
+      action TEXT NOT NULL,
+      details TEXT,
+      timestamp TEXT NOT NULL,
+      FOREIGN KEY (ticket_id) REFERENCES tickets (id) ON DELETE CASCADE,
+      FOREIGN KEY (station_id) REFERENCES stations (id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_tickets_queue_date ON tickets(queue_date);
+    CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
+    CREATE INDEX IF NOT EXISTS idx_tickets_current_station ON tickets(current_station_id);
+  `);
+
+  // Ensure department column exists in tickets
+  try {
+    db.exec(`ALTER TABLE tickets ADD COLUMN department TEXT NOT NULL DEFAULT 'medical';`);
+  } catch (e) {}
+
+  // Ensure default 4 stations are seeded
+  syncDefaultStations();
+}
+
+function syncDefaultStations() {
+  const desiredStations = [
+    { id: 1, name: 'General Consultation (Doctor 1)', code: 'DOC-1', counter: 1, type: 'medical' },
+    { id: 2, name: 'General Consultation (Doctor 2)', code: 'DOC-2', counter: 2, type: 'medical' },
+    { id: 3, name: 'General Consultation (Doctor 3)', code: 'DOC-3', counter: 3, type: 'medical' },
+    { id: 4, name: 'Dental Clinic', code: 'DENT-1', counter: 4, type: 'dental' },
+    { id: 5, name: 'Pharmacy / Dispensing', code: 'PHARM-1', counter: 5, type: 'pharmacy' },
+  ];
+
+  const count = db.prepare('SELECT COUNT(*) as count FROM stations').get().count;
+  if (count !== 5) {
+    const syncTx = db.transaction(() => {
+      db.exec(`
+        DELETE FROM ticket_logs;
+        DELETE FROM tickets;
+        DELETE FROM stations;
+      `);
+      const insert = db.prepare(`
+        INSERT INTO stations (id, name, code, counter_number, type, active)
+        VALUES (?, ?, ?, ?, ?, 1)
+      `);
+      desiredStations.forEach(s => insert.run(s.id, s.name, s.code, s.counter, s.type));
+    });
+    syncTx();
+  }
+}
+
+initializeDatabase();
+
+module.exports = db;

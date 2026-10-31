@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>City Health Office — Waiting Area TV Display</title>
+  <link rel="icon" type="image/jpeg" href="/logo.jpg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@700;900&display=swap" rel="stylesheet">
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    @keyframes flash-green {
+      0%, 100% { border-color: #15803d; box-shadow: 0 0 0 0 transparent; }
+      50% { border-color: #16a34a; box-shadow: 0 0 50px 8px rgba(21,128,61,0.2); }
+    }
+    .flash-call { animation: flash-green 0.9s 4 ease-in-out; }
+  </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col justify-between overflow-hidden select-none">
+
+  <!-- Audio Unlock Banner -->
+  <div id="audioUnlockBanner" onclick="unlockAudio()" class="bg-green-700 text-white px-6 py-2.5 flex items-center justify-between text-xs font-semibold cursor-pointer z-50 hover:bg-green-800 transition-colors">
+    <span class="flex items-center gap-2">
+      <i class="fa-solid fa-volume-high animate-pulse"></i>
+      Click anywhere on this screen to enable automatic voice announcements and hospital chime.
+    </span>
+    <span class="bg-white text-green-700 px-3 py-1 rounded-md font-bold uppercase tracking-wide text-[10px]">Enable Audio</span>
+  </div>
+
+  <!-- TV Header -->
+  <header class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center shadow-xs">
+    <div class="flex items-center gap-4">
+      <img src="/logo.jpg" alt="CHO Logo" class="w-12 h-12 rounded-full object-cover shadow-sm border border-gray-200">
+      <div>
+        <p class="text-xl font-black text-gray-900 tracking-tight leading-none">CITY HEALTH OFFICE — CITY OF NAGA</p>
+        <p class="text-xs font-semibold text-green-700 uppercase tracking-wider mt-1">Patient Queue Information Display</p>
+      </div>
+    </div>
+    <div class="text-right">
+      <p id="clockTime" class="mono text-3xl font-black text-gray-900 leading-none">00:00:00</p>
+      <p id="clockDate" class="text-xs text-gray-400 uppercase tracking-wider mt-1 font-medium"></p>
+    </div>
+  </header>
+
+  <!-- Main Grid Area -->
+  <main class="flex-1 p-6 grid grid-cols-12 gap-6 min-h-0">
+
+    <!-- LEFT 7 COLS: Huge "NOW SERVING" Spotlight -->
+    <div class="col-span-12 lg:col-span-7 flex flex-col">
+      <div id="spotlightCard" class="flex-1 bg-white rounded-3xl border-4 border-green-700 flex flex-col justify-center items-center text-center shadow-lg px-8 py-10 transition-all">
+
+        <!-- Status Tag -->
+        <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-green-50 border border-green-200 text-xs font-black text-green-800 uppercase tracking-wider mb-4">
+          <span class="w-2.5 h-2.5 rounded-full bg-green-600 animate-ping inline-flex"></span>
+          <span id="spotlightTag">NOW SERVING TOKEN</span>
+        </div>
+
+        <!-- Huge Token Number -->
+        <p id="spotlightTicketNumber" class="mono font-black text-gray-900 leading-none my-4" style="font-size: clamp(6rem, 18vw, 13rem);">
+          ---
+        </p>
+
+        <!-- Destination Station Box -->
+        <div class="w-full max-w-lg bg-gray-50 rounded-2xl p-6 border border-gray-200 mt-2">
+          <p class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1.5">Please Proceed To:</p>
+          <p id="spotlightStation" class="text-2xl sm:text-3xl font-black text-gray-900">—</p>
+          <div id="spotlightCounterBadge" class="mt-3 inline-block px-5 py-2 rounded-xl bg-green-700 text-white text-sm font-bold uppercase tracking-wider shadow-sm">
+            Counter —
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT 5 COLS: 4 Station Counters Overview -->
+    <div class="col-span-12 lg:col-span-5 flex flex-col">
+      <div class="flex-1 bg-white rounded-3xl border border-gray-200 shadow-sm flex flex-col p-6">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+          <h2 class="text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-wider">
+            <i class="fa-solid fa-hospital-user text-green-700"></i> Clinic Counters Status
+          </h2>
+          <span class="text-xs font-semibold text-gray-400">5 Active Counters</span>
+        </div>
+
+        <div id="activeStationsList" class="flex-1 flex flex-col justify-around gap-2.5">
+          <div class="text-center py-10 text-gray-400 text-sm">Connecting...</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bottom Ticker: Next Expected Tokens in Line -->
+  <footer class="bg-white border-t border-gray-200 px-8 py-3.5 flex items-center justify-between gap-6 shadow-sm">
+    <div class="flex items-center gap-2 whitespace-nowrap">
+      <span class="w-2.5 h-2.5 rounded-full bg-green-600 animate-pulse"></span>
+      <span class="text-xs font-black text-green-800 uppercase tracking-wider">BE READY / NEXT IN LINE:</span>
+    </div>
+    
+    <div id="upcomingTicker" class="flex items-center gap-4 overflow-x-hidden flex-1">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold text-gray-500">Medical:</span>
+        <span id="nextMedTokens" class="mono text-xs font-bold text-green-700">#1, #2, #3</span>
+      </div>
+      <span class="text-gray-300">|</span>
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold text-gray-500">Dental:</span>
+        <span id="nextDentTokens" class="mono text-xs font-bold text-teal-700">#D-1, #D-2</span>
+      </div>
+      <span class="text-gray-300">|</span>
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold text-gray-500">Pharmacy:</span>
+        <span id="nextPharmTokens" class="mono text-xs font-bold text-indigo-700">#Rx-1</span>
+      </div>
+    </div>
+
+    <div class="text-xs text-gray-400 font-medium whitespace-nowrap hidden sm:block">
+      City Health Office Walk-In Queue
+    </div>
+  </footer>
+
+  <script>
+    const socket = io();
+    let audioUnlocked = false;
+
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clockTime').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('clockDate').textContent = now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function unlockAudio() {
+      audioUnlocked = true;
+      document.getElementById('audioUnlockBanner').classList.add('hidden');
+      playChime();
+    }
+
+    function playChime() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+        const now = ctx.currentTime;
+        [[587.33, now, 0.6], [880, now + 0.3, 0.9]].forEach(([freq, start, end]) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, start);
+          gain.gain.setValueAtTime(0.35, start);
+          gain.gain.exponentialRampToValueAtTime(0.001, end);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(start);
+          osc.stop(end);
+        });
+      } catch (e) {
+        console.warn('Audio chime error:', e);
+      }
+    }
+
+    function speakTicket(ticketNumber, stationName, counterNumber) {
+      if (!('speechSynthesis' in window)) return;
+      const cleanNum = ticketNumber.replace('#', '');
+      const text = `Now serving token number ${cleanNum}. Please proceed to Counter ${counterNumber}, ${stationName}.`;
+
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.88;
+      u.pitch = 1.0;
+      setTimeout(() => window.speechSynthesis.speak(u), 700);
+    }
+
+    function updateSpotlight(ticket, stationName, counterNumber, isRecall = false) {
+      const card = document.getElementById('spotlightCard');
+      card.classList.remove('flash-call');
+      void card.offsetWidth;
+      card.classList.add('flash-call');
+
+      document.getElementById('spotlightTag').textContent = isRecall ? 'RECALLING TOKEN' : 'NOW SERVING TOKEN';
+      document.getElementById('spotlightTicketNumber').textContent = `#${ticket.ticket_number}`;
+      document.getElementById('spotlightStation').textContent = stationName || '—';
+      document.getElementById('spotlightCounterBadge').textContent = `Counter ${counterNumber}`;
+    }
+
+    function renderBoard(stations) {
+      const container = document.getElementById('activeStationsList');
+      if (!stations || stations.length === 0) {
+        container.innerHTML = '<div class="text-center py-10 text-gray-400 text-sm">No counters configured.</div>';
+        return;
+      }
+
+      const getCounterTheme = (type) => {
+        if (type === 'dental') return { bg: 'bg-teal-700', sub: 'Dental Examination' };
+        if (type === 'pharmacy') return { bg: 'bg-indigo-700', sub: 'Medicine Dispensing' };
+        return { bg: 'bg-green-700', sub: 'Doctor Consultation' };
+      };
+
+      container.innerHTML = stations.map(st => {
+        const theme = getCounterTheme(st.station_type);
+        return `
+        <div class="border ${st.ticket_number ? 'border-green-300 bg-green-50/70' : 'border-gray-100 bg-gray-50/70'} rounded-2xl p-3.5 flex items-center justify-between transition-all">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl ${theme.bg} text-white flex items-center justify-center font-black text-xs mono shadow-xs">
+              C${st.counter_number}
+            </div>
+            <div>
+              <p class="font-extrabold text-gray-900 text-sm leading-tight">${st.station_name}</p>
+              <p class="text-[11px] text-gray-400 mt-0.5">${theme.sub}</p>
+            </div>
+          </div>
+          <div class="text-right">
+            ${st.ticket_number
+              ? `<p class="mono text-2xl font-black text-green-800">#${st.ticket_number}</p>
+                 <p class="text-[10px] text-green-700 font-bold uppercase tracking-wider">Serving</p>`
+              : `<p class="text-xs text-gray-400 font-medium italic">Available</p>`
+            }
+          </div>
+        </div>
+      `;
+      }).join('');
+    }
+
+    function renderNextExpected(nextExpected) {
+      if (!nextExpected) return;
+      if (nextExpected.medical) {
+        document.getElementById('nextMedTokens').textContent = nextExpected.medical.map(n => `#${n}`).join(', ');
+      }
+      if (nextExpected.dental) {
+        document.getElementById('nextDentTokens').textContent = nextExpected.dental.map(n => `#${n}`).join(', ');
+      }
+      if (nextExpected.pharmacy) {
+        const pEl = document.getElementById('nextPharmTokens');
+        if (pEl) pEl.textContent = nextExpected.pharmacy.map(n => `#${n}`).join(', ');
+      }
+    }
+
+    // Initial Load via REST
+    fetch('/api/display')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          renderBoard(data.data.displayBoard);
+          renderNextExpected(data.data.nextExpected);
+          const active = data.data.displayBoard.find(s => s.ticket_number);
+          if (active) {
+            updateSpotlight({ ticket_number: active.ticket_number }, active.station_name, active.counter_number);
+          }
+        }
+      });
+
+    // Real-Time Socket Events
+    socket.on('queue:updated', (data) => {
+      renderBoard(data.displayBoard);
+      renderNextExpected(data.nextExpected);
+    });
+
+    socket.on('ticket:called', (payload) => {
+      updateSpotlight(payload.ticket, payload.stationName, payload.counterNumber, payload.isRecall);
+      if (audioUnlocked) {
+        playChime();
+        speakTicket(payload.ticketNumber, payload.stationName, payload.counterNumber);
+      }
+    });
+  </script>
+</body>
+</html>

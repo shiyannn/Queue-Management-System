@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>City Health Office — Doctor & Staff Terminal</title>
+  <link rel="icon" type="image/jpeg" href="/logo.jpg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;800&display=swap"
+    rel="stylesheet">
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    * {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 min-h-screen">
+
+  <!-- ═══════════════════════════════════════════════════════════
+     SCREEN 1: STATION PICKER (Shown if no station is locked)
+     ═══════════════════════════════════════════════════════════ -->
+  <div id="pickerScreen" class="min-h-screen flex flex-col">
+
+    <!-- Picker Header -->
+    <header class="bg-white border-b border-gray-200">
+      <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+          <img src="/logo.jpg" alt="CHO Logo" class="w-9 h-9 rounded-full object-cover shadow-xs border border-gray-200">
+          <div>
+            <p class="text-sm font-bold text-gray-900 leading-tight">City Health Office — City of Naga</p>
+            <p class="text-xs text-gray-500">Doctor &amp; Staff Calling Terminal</p>
+          </div>
+        </div>
+        <a href="/"
+          class="text-xs font-semibold text-gray-500 hover:text-green-700 flex items-center gap-1.5 transition-colors">
+          <i class="fa-solid fa-house text-[10px]"></i> Control Hub
+        </a>
+      </div>
+    </header>
+
+    <!-- Picker Body -->
+    <main class="flex-1 flex flex-col justify-center max-w-3xl w-full mx-auto px-6 py-12">
+      <div class="mb-8">
+        <p class="text-xs font-semibold text-green-700 uppercase tracking-widder mb-2">Calling Token System</p>
+        <h1 class="text-3xl sm:text-4xl font-black text-gray-900 leading-tight mb-3">
+          Select Your Counter
+        </h1>
+        <p class="text-sm text-gray-500 max-w-lg leading-relaxed">
+          Choose your assigned counter below. Your tablet will lock to this room so you can call the next patient token
+          with one tap.
+        </p>
+      </div>
+
+      <div class="border-t border-gray-200 mb-8"></div>
+
+      <!-- Stations Grid -->
+      <div id="stationPickerGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="col-span-full text-center py-12 text-gray-400 text-sm">Loading clinic counters...</div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+     SCREEN 2: DOCTOR CALLING TERMINAL (Locked)
+     ═══════════════════════════════════════════════════════════ -->
+  <div id="terminalScreen" class="hidden min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-xs">
+      <div class="max-w-7xl mx-auto px-6 py-3.5 flex flex-wrap justify-between items-center gap-4">
+
+        <!-- Counter Identity -->
+        <div class="flex items-center gap-3">
+          <div id="headerCounterBadge"
+            class="w-10 h-10 rounded-lg bg-green-700 flex items-center justify-center text-white font-black text-sm mono">
+            C1
+          </div>
+          <div>
+            <p id="headerStationName" class="text-sm font-bold text-gray-900 leading-tight">General Consultation (Doctor
+              1)</p>
+            <p id="headerStationSub" class="text-xs text-gray-500">Counter 1 · Medical</p>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="flex items-center gap-3">
+          <div id="terminalClock" class="mono text-xs text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg hidden sm:block">
+            --:--:--</div>
+
+          <button onclick="switchCounter()"
+            class="text-xs font-semibold text-gray-600 hover:text-green-700 border border-gray-300 hover:border-green-600 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer">
+            <i class="fa-solid fa-shuffle text-[10px]"></i> Switch Counter
+          </button>
+
+          <a href="/"
+            class="text-sm text-gray-400 hover:text-green-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            title="Control Hub">
+            <i class="fa-solid fa-house"></i>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Work Area -->
+    <main class="flex-1 max-w-7xl mx-auto w-full px-6 py-6 grid grid-cols-12 gap-6">
+
+      <!-- LEFT 7 COLS: Calling Action & Active Patient -->
+      <div class="col-span-12 lg:col-span-7 space-y-5">
+
+        <!-- Big "CALL NEXT TOKEN" Card -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <div>
+              <p class="text-xs font-semibold text-green-700 uppercase tracking-wider mb-0.5">Pre-Printed Token Queue
+              </p>
+              <h2 id="terminalStationTitle" class="text-xl font-black text-gray-900">Doctor 1</h2>
+            </div>
+            <div class="flex items-center gap-2 bg-green-50 border border-green-200 px-3 py-1.5 rounded-xl">
+              <span class="text-xs text-green-800 font-semibold">Next in line:</span>
+              <span id="nextSequenceBadge" class="mono text-base font-black text-green-800">#1</span>
+            </div>
+          </div>
+
+          <!-- Big FIFO Button -->
+          <button onclick="callNext()"
+            class="w-full py-6 rounded-2xl bg-green-700 hover:bg-green-800 active:bg-green-900 text-white font-black text-2xl tracking-tight flex items-center justify-center gap-4 transition-all shadow-md shadow-green-900/10 cursor-pointer mb-5">
+            <i class="fa-solid fa-bullhorn text-3xl"></i>
+            <span>CALL NEXT TOKEN</span>
+          </button>
+
+          <!-- Direct / Specific Number Call Input -->
+          <div class="pt-4 border-t border-gray-100 flex items-center gap-2">
+            <label for="specificNumberInput" class="text-xs font-semibold text-gray-500 whitespace-nowrap">Call Specific
+              Token:</label>
+            <input type="text" id="specificNumberInput" placeholder="e.g. 5 or D-2"
+              class="mono text-sm uppercase font-bold bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex-1 focus:outline-none focus:ring-2 focus:ring-green-600 focus:bg-white"
+              onkeypress="if(event.key === 'Enter') callSpecific();" />
+            <button onclick="callSpecific()"
+              class="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer">
+              Call
+            </button>
+          </div>
+        </div>
+
+        <!-- Current Serving Patient Card -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+          <div class="flex justify-between items-center pb-4 border-b border-gray-100 mb-5">
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Current Token at Counter</p>
+            <span id="activeTicketStatus"
+              class="text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">
+              Counter Ready
+            </span>
+          </div>
+
+          <!-- Empty State -->
+          <div id="noActivePatientMsg" class="text-center py-10">
+            <div
+              class="w-12 h-12 rounded-full bg-gray-100 text-gray-400 mx-auto flex items-center justify-center text-xl mb-3">
+              <i class="fa-regular fa-user"></i>
+            </div>
+            <p class="text-sm font-semibold text-gray-700">Counter is currently ready</p>
+            <p class="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
+              Click <strong>CALL NEXT TOKEN</strong> above to advance the pre-printed queue and ring the waiting area
+              TV.
+            </p>
+          </div>
+
+          <!-- Active Patient Details -->
+          <div id="activePatientBox" class="hidden">
+            <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+              <div>
+                <p class="text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">Now Serving</p>
+                <div class="flex items-baseline gap-2">
+                  <span class="text-xs font-bold text-gray-400 mono">TOKEN</span>
+                  <span id="activeTicketNumber" class="mono text-6xl font-black text-gray-900 leading-none">#1</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-2" id="activeNotes"></p>
+              </div>
+              <div class="text-right bg-gray-50 px-4 py-3 rounded-xl border border-gray-100">
+                <p class="text-[10px] text-gray-400 uppercase font-semibold">Time Called</p>
+                <p class="mono text-base font-bold text-gray-800 mt-0.5" id="activeCalledAt">--:--</p>
+              </div>
+            </div>
+
+            <!-- Quick Action Buttons -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5 border-t border-gray-100">
+              <!-- 1. Recall -->
+              <button onclick="recallActive()"
+                class="py-3 rounded-xl border border-gray-200 bg-white hover:border-green-600 hover:bg-green-50 text-gray-700 hover:text-green-700 text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer shadow-xs">
+                <i class="fa-solid fa-bell text-sm text-green-700"></i>
+                <span>Recall / Ring</span>
+              </button>
+
+              <!-- 2. Skip -->
+              <button onclick="skipActive()"
+                class="py-3 rounded-xl border border-gray-200 bg-white hover:border-amber-500 hover:bg-amber-50 text-gray-700 hover:text-amber-700 text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer shadow-xs">
+                <i class="fa-solid fa-forward-step text-sm text-amber-600"></i>
+                <span>Skip / No-Show</span>
+              </button>
+
+              <!-- 3. Transfer -->
+              <button onclick="openTransferModal()"
+                class="py-3 rounded-xl border border-gray-200 bg-white hover:border-teal-600 hover:bg-teal-50 text-gray-700 hover:text-teal-700 text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer shadow-xs">
+                <i class="fa-solid fa-share-nodes text-sm text-teal-600"></i>
+                <span>Transfer</span>
+              </button>
+
+              <!-- 4. Done -->
+              <button onclick="completeActive()"
+                class="py-3 rounded-xl bg-green-700 hover:bg-green-800 active:bg-green-900 text-white text-xs font-bold flex flex-col items-center gap-1.5 transition-colors shadow-sm cursor-pointer">
+                <i class="fa-solid fa-check text-sm"></i>
+                <span>Complete / Done</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT 5 COLS: Skipped Tokens & Inter-Counter Sync -->
+      <div class="col-span-12 lg:col-span-5 space-y-5">
+
+        <!-- Skipped / Stepped Out Tokens -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-user-clock text-amber-600"></i>
+              Skipped Tokens
+            </h3>
+            <span id="skippedCountBadge"
+              class="mono text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">0</span>
+          </div>
+          <p class="text-xs text-gray-400 mb-4">Patients who missed their call. Tap <strong>Call</strong> when they
+            return.</p>
+
+          <div id="skippedListContainer" class="space-y-2 max-h-[220px] overflow-y-auto pr-0.5">
+            <div class="text-center py-5 text-xs text-gray-400">No skipped tokens.</div>
+          </div>
+        </div>
+
+        <!-- Live Counters Status (So Doctor knows who is currently serving) -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+          <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-users text-green-700"></i>
+            All Counters Status
+          </h3>
+          <div id="otherCountersList" class="space-y-2.5">
+            <div class="text-center py-4 text-xs text-gray-400">Loading counters...</div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Transfer Modal -->
+  <div id="transferModal"
+    class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200">
+      <h3 class="text-lg font-black text-gray-900 mb-0.5">Transfer Token</h3>
+      <p class="text-xs text-gray-500 mb-4">Route this patient to another Doctor or Dental Clinic.</p>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Target Counter</label>
+          <select id="transferStationSelect"
+            class="w-full border border-gray-300 bg-white rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-green-600"></select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-600 uppercase tracking-wider mb-1.5">Clinical Referral Notes
+            (Optional)</label>
+          <textarea id="transferNotesInput" rows="2" placeholder="e.g. For dental tooth extraction"
+            class="w-full border border-gray-300 bg-white rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-600 resize-none placeholder-gray-400"></textarea>
+        </div>
+      </div>
+
+      <div class="flex gap-3 mt-5">
+        <button onclick="closeTransferModal()"
+          class="flex-1 py-2.5 border border-gray-200 text-gray-700 font-semibold rounded-xl text-sm hover:bg-gray-50 transition-colors cursor-pointer">
+          Cancel
+        </button>
+        <button onclick="confirmTransfer()"
+          class="flex-1 py-2.5 bg-green-700 hover:bg-green-800 text-white font-bold rounded-xl text-sm transition-colors shadow-sm cursor-pointer">
+          Confirm Transfer
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    const LS_KEY = 'cho_locked_station_id';
+
+    let stations = [];
+    let currentStationId = null;
+    let activeTicket = null;
+
+    async function init() {
+      await loadStations();
+      startClock();
+
+      const savedId = localStorage.getItem(LS_KEY);
+      if (savedId && stations.some(s => s.id == savedId)) {
+        enterTerminal(Number(savedId));
+      } else {
+        showPicker();
+      }
+    }
+
+    async function loadStations() {
+      try {
+        const res = await fetch('/api/stations');
+        const data = await res.json();
+        if (data.success) stations = data.data;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function showPicker() {
+      document.getElementById('pickerScreen').classList.remove('hidden');
+      document.getElementById('terminalScreen').classList.add('hidden');
+      renderPickerGrid();
+    }
+
+    function renderPickerGrid() {
+      const grid = document.getElementById('stationPickerGrid');
+      const getStationTheme = (type) => {
+        if (type === 'dental') return { bg: 'bg-teal-700', icon: 'fa-tooth', badge: 'bg-teal-100 text-teal-800', label: 'Dental Clinic' };
+        if (type === 'pharmacy') return { bg: 'bg-indigo-700', icon: 'fa-pills', badge: 'bg-indigo-100 text-indigo-800', label: 'Pharmacy / Dispensing' };
+        return { bg: 'bg-green-700', icon: 'fa-user-doctor', badge: 'bg-green-100 text-green-800', label: 'Medical Consultation' };
+      };
+
+      grid.innerHTML = stations.map(st => {
+        const theme = getStationTheme(st.type);
+        return `
+        <button
+          onclick="enterTerminal(${st.id})"
+          class="border border-gray-200 hover:border-green-600 rounded-2xl p-6 bg-white text-left hover:shadow-md transition-all cursor-pointer">
+          <div class="flex items-center justify-between mb-4">
+            <div class="w-11 h-11 rounded-xl ${theme.bg} flex items-center justify-center text-white text-lg shadow-2xs">
+              <i class="fa-solid ${theme.icon}"></i>
+            </div>
+            <span class="text-[11px] font-bold uppercase px-2.5 py-0.5 rounded-full ${theme.badge}">
+              Counter ${st.counter_number}
+            </span>
+          </div>
+          <p class="text-xs font-semibold text-green-700 mb-1">${theme.label}</p>
+          <h3 class="text-lg font-black text-gray-900 mb-1 leading-snug">${st.name}</h3>
+          <p class="text-xs text-gray-400 mb-4">${st.code}</p>
+          <div class="pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-green-700">
+            <span>Tap to select counter</span>
+            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+          </div>
+        </button>
+      `;
+      }).join('');
+    }
+
+    function enterTerminal(stationId) {
+      currentStationId = stationId;
+      localStorage.setItem(LS_KEY, stationId);
+
+      const st = stations.find(s => s.id === stationId);
+      const isDental = st.type === 'dental';
+      const isPharm = st.type === 'pharmacy';
+      const badgeBg = isDental ? 'bg-teal-700' : (isPharm ? 'bg-indigo-700' : 'bg-green-700');
+      const deptLabel = isDental ? 'Dental' : (isPharm ? 'Pharmacy' : 'Medical');
+
+      document.getElementById('headerCounterBadge').textContent = `C${st.counter_number}`;
+      document.getElementById('headerCounterBadge').className = `w-10 h-10 rounded-lg ${badgeBg} flex items-center justify-center text-white font-black text-sm mono`;
+      document.getElementById('headerStationName').textContent = st.name;
+      document.getElementById('headerStationSub').textContent = `Counter ${st.counter_number} · ${deptLabel}`;
+      document.getElementById('terminalStationTitle').textContent = st.name;
+
+      document.getElementById('pickerScreen').classList.add('hidden');
+      document.getElementById('terminalScreen').classList.remove('hidden');
+
+      updateTerminalView();
+    }
+
+    function switchCounter() {
+      localStorage.removeItem(LS_KEY);
+      currentStationId = null;
+      activeTicket = null;
+      showPicker();
+    }
+
+    async function updateTerminalView() {
+      if (!currentStationId) return;
+      try {
+        const res = await fetch(`/api/stations/${currentStationId}/terminal`);
+        const result = await res.json();
+        if (result.success) {
+          document.getElementById('nextSequenceBadge').textContent = `#${result.data.nextNumber}`;
+          renderActiveTicket(result.data.currentServing);
+          renderSkippedList(result.data.skippedList);
+        }
+
+        // Update counters summary
+        const dispRes = await fetch('/api/display');
+        const dispData = await dispRes.json();
+        if (dispData.success) {
+          renderOtherCounters(dispData.data.displayBoard);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function renderActiveTicket(ticket) {
+      activeTicket = ticket;
+      const noPatient = document.getElementById('noActivePatientMsg');
+      const box = document.getElementById('activePatientBox');
+      const badge = document.getElementById('activeTicketStatus');
+
+      if (!ticket) {
+        noPatient.classList.remove('hidden');
+        box.classList.add('hidden');
+        badge.textContent = 'Counter Ready';
+        badge.className = 'text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-gray-100 text-gray-500';
+        return;
+      }
+
+      noPatient.classList.add('hidden');
+      box.classList.remove('hidden');
+      document.getElementById('activeTicketNumber').textContent = `#${ticket.ticket_number}`;
+      document.getElementById('activeCalledAt').textContent = ticket.called_at
+        ? new Date(ticket.called_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : '--:--';
+      document.getElementById('activeNotes').textContent = ticket.notes ? `Note: ${ticket.notes}` : '';
+
+      badge.textContent = 'Serving';
+      badge.className = 'text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-green-100 text-green-800';
+    }
+
+    function renderSkippedList(skipped) {
+      document.getElementById('skippedCountBadge').textContent = skipped ? skipped.length : 0;
+      const container = document.getElementById('skippedListContainer');
+      if (!skipped || skipped.length === 0) {
+        container.innerHTML = '<div class="text-center py-5 text-xs text-gray-400">No skipped tokens.</div>';
+        return;
+      }
+
+      container.innerHTML = skipped.map(t => {
+        const time = t.called_at ? new Date(t.called_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        return `
+        <div class="flex items-center justify-between p-2.5 rounded-xl border border-amber-200 bg-amber-50">
+          <div>
+            <span class="mono font-black text-amber-900 text-sm">#${t.ticket_number}</span>
+            <span class="text-[10px] text-gray-400 ml-2">Skipped at ${time}</span>
+          </div>
+          <button onclick="callSpecificToken('${t.ticket_number}')"
+            class="text-xs font-bold text-amber-800 bg-white border border-amber-300 hover:bg-amber-700 hover:text-white px-2.5 py-1 rounded-lg transition-colors cursor-pointer shadow-2xs">
+            Recall #${t.ticket_number}
+          </button>
+        </div>
+      `;
+      }).join('');
+    }
+
+    function renderOtherCounters(board) {
+      const container = document.getElementById('otherCountersList');
+      if (!board) return;
+      container.innerHTML = board.map(st => `
+      <div class="flex items-center justify-between p-2.5 rounded-xl border ${st.ticket_number ? 'border-green-200 bg-green-50/50' : 'border-gray-100 bg-gray-50'} text-xs">
+        <div class="flex items-center gap-2">
+          <span class="mono font-bold text-gray-600">C${st.counter_number}</span>
+          <span class="font-medium text-gray-800">${st.station_name}</span>
+        </div>
+        <div>
+          ${st.ticket_number
+          ? `<span class="mono font-black text-green-800 bg-white border border-green-200 px-2 py-0.5 rounded-md">#${st.ticket_number}</span>`
+          : `<span class="text-gray-400 italic">Ready</span>`
+        }
+        </div>
+      </div>
+    `).join('');
+    }
+
+    async function callNext() {
+      if (!currentStationId) return;
+      try {
+        const res = await fetch(`/api/stations/${currentStationId}/call-next`, { method: 'POST' });
+        const result = await res.json();
+        if (result.success) updateTerminalView();
+      } catch { alert('Network error'); }
+    }
+
+    async function callSpecific() {
+      const input = document.getElementById('specificNumberInput');
+      const val = input.value.trim();
+      if (!val) return;
+      callSpecificToken(val);
+      input.value = '';
+    }
+
+    async function callSpecificToken(ticketNumber) {
+      if (!currentStationId) return;
+      try {
+        const res = await fetch(`/api/stations/${currentStationId}/call-specific`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ticketNumber })
+        });
+        const result = await res.json();
+        if (result.success) updateTerminalView();
+      } catch { alert('Network error'); }
+    }
+
+    async function recallActive() {
+      if (!activeTicket) return;
+      await fetch(`/api/tickets/${activeTicket.id}/recall`, { method: 'POST' }).catch(() => { });
+    }
+
+    async function skipActive() {
+      if (!activeTicket) return;
+      await fetch(`/api/tickets/${activeTicket.id}/skip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'Patient no-show' })
+      }).catch(() => { });
+      updateTerminalView();
+    }
+
+    async function completeActive() {
+      if (!activeTicket) return;
+      await fetch(`/api/tickets/${activeTicket.id}/complete`, { method: 'POST' }).catch(() => { });
+      updateTerminalView();
+    }
+
+    function openTransferModal() {
+      if (!activeTicket) return;
+      const others = stations.filter(s => s.id !== currentStationId);
+      document.getElementById('transferStationSelect').innerHTML = others.map(s =>
+        `<option value="${s.id}">Counter ${s.counter_number}: ${s.name}</option>`
+      ).join('');
+      document.getElementById('transferNotesInput').value = '';
+      document.getElementById('transferModal').classList.remove('hidden');
+    }
+
+    function closeTransferModal() {
+      document.getElementById('transferModal').classList.add('hidden');
+    }
+
+    async function confirmTransfer() {
+      if (!activeTicket) return;
+      const targetStationId = document.getElementById('transferStationSelect').value;
+      const notes = document.getElementById('transferNotesInput').value;
+      try {
+        const res = await fetch(`/api/tickets/${activeTicket.id}/transfer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetStationId, notes })
+        });
+        const result = await res.json();
+        if (result.success) { closeTransferModal(); updateTerminalView(); }
+      } catch { alert('Network error'); }
+    }
+
+    function startClock() {
+      function tick() {
+        const el = document.getElementById('terminalClock');
+        if (el) el.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+      setInterval(tick, 1000);
+      tick();
+    }
+
+    socket.on('queue:updated', () => {
+      if (currentStationId) updateTerminalView();
+    });
+
+    init();
+  </script>
+
+</body>
+
+</html>
