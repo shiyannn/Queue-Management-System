@@ -153,7 +153,7 @@ app.get('/api/stations/:id/terminal', (req, res) => {
 
     const currentServing = queueService.getCurrentTicketForStation(stationId);
     const skippedList = queueService.getSkippedTickets(station.type);
-    const nextExpected = queueService.getNextExpected();
+    const history = queueService.getStationHistory(stationId, 30);
 
     res.json({
       success: true,
@@ -161,9 +161,32 @@ app.get('/api/stations/:id/terminal', (req, res) => {
         station,
         currentServing,
         skippedList,
+        history,
         nextNumber: queueService.getNextForStation(stationId)
       }
     });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 8b. Station History
+app.get('/api/stations/:id/history', (req, res) => {
+  try {
+    const stationId = Number(req.params.id);
+    const history = queueService.getStationHistory(stationId);
+    res.json({ success: true, data: history });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 8c. Ticket Lookup / Search (Triage & Patient Station Finder)
+app.get('/api/tickets/lookup', (req, res) => {
+  try {
+    const { q } = req.query;
+    const results = queueService.lookupTicket(q || '');
+    res.json({ success: true, data: results });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

@@ -109,6 +109,36 @@
       </div>
     </section>
 
+    <!-- Token & Doctor Lookup / Station Finder -->
+    <section class="max-w-7xl mx-auto px-4 py-8 sm:px-6 border-b border-gray-100 bg-gray-50/60">
+      <div class="max-w-2xl mx-auto text-center">
+        <p class="text-xs font-bold text-green-700 uppercase tracking-wider mb-1 flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-magnifying-glass"></i> Patient Token &amp; Doctor Lookup
+        </p>
+        <h2 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight mb-2">Find Assigned Room or Doctor</h2>
+        <p class="text-xs sm:text-sm text-gray-500 mb-5">
+          Di maalala kung sinong doktor ang tumawag sa iyo? Type your token number below to check your counter and room.
+        </p>
+
+        <!-- Search Input -->
+        <div class="flex items-center gap-2 max-w-md mx-auto">
+          <div class="relative flex-1">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 font-bold mono">#</span>
+            <input type="text" id="tokenSearchInput" placeholder="Enter token number (e.g. 5, D-2, Rx-1)"
+              class="w-full pl-8 pr-4 py-3 rounded-xl border border-gray-300 bg-white mono text-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-green-600 shadow-xs"
+              onkeypress="if(event.key === 'Enter') lookupToken();" />
+          </div>
+          <button onclick="lookupToken()"
+            class="px-5 py-3 bg-green-700 hover:bg-green-800 active:bg-green-900 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-sm cursor-pointer whitespace-nowrap active:scale-95">
+            Search
+          </button>
+        </div>
+
+        <!-- Search Results Box -->
+        <div id="lookupResultBox" class="mt-4 hidden text-left max-w-md mx-auto"></div>
+      </div>
+    </section>
+
     <!-- Real-Time Counter Status Section -->
     <section class="max-w-7xl mx-auto px-4 py-8 sm:px-6 sm:py-10 border-b border-gray-100">
       <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
@@ -254,6 +284,60 @@
         loadData();
       } catch (e) {
         alert('Network error while resetting');
+      }
+    }
+
+    async function lookupToken() {
+      const input = document.getElementById('tokenSearchInput');
+      const val = input.value.trim();
+      const resultBox = document.getElementById('lookupResultBox');
+      if (!val) {
+        resultBox.classList.add('hidden');
+        return;
+      }
+
+      try {
+        resultBox.classList.remove('hidden');
+        resultBox.innerHTML = '<div class="p-4 bg-white border border-gray-200 rounded-xl text-center text-xs text-gray-400">Searching...</div>';
+        const res = await fetch(`/api/tickets/lookup?q=${encodeURIComponent(val)}`);
+        const json = await res.json();
+
+        if (!json.success || !json.data || json.data.length === 0) {
+          resultBox.innerHTML = `
+            <div class="p-4 bg-white border border-amber-200 rounded-xl text-center">
+              <p class="text-xs font-bold text-amber-800">Token #${val.toUpperCase()} not found today</p>
+              <p class="text-[11px] text-gray-400 mt-0.5">Please check your physical token number with the triage nurse or guard.</p>
+            </div>
+          `;
+          return;
+        }
+
+        resultBox.innerHTML = json.data.map(t => {
+          const time = t.called_at ? new Date(t.called_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+          let statusBadge = 'bg-gray-100 text-gray-600';
+          let statusText = t.status;
+          if (t.status === 'COMPLETED') { statusBadge = 'bg-green-100 text-green-800'; statusText = 'Done / Finished'; }
+          else if (t.status === 'CALLED' || t.status === 'SERVING') { statusBadge = 'bg-blue-100 text-blue-800 animate-pulse'; statusText = 'Now In Room'; }
+          else if (t.status === 'SKIPPED') { statusBadge = 'bg-amber-100 text-amber-800'; statusText = 'Skipped (Missed Call)'; }
+          else if (t.status === 'WAITING') { statusBadge = 'bg-purple-100 text-purple-800'; statusText = 'Waiting (Transferred)'; }
+
+          return `
+            <div class="p-4 bg-white border-2 border-green-600 rounded-2xl shadow-md space-y-2.5 mb-2.5">
+              <div class="flex items-center justify-between">
+                <span class="mono text-2xl font-black text-gray-900">TOKEN #${t.ticket_number}</span>
+                <span class="text-xs font-bold uppercase px-2.5 py-0.5 rounded-full ${statusBadge}">${statusText}</span>
+              </div>
+              <div class="p-3 bg-green-50/70 border border-green-200 rounded-xl">
+                <p class="text-[10px] font-bold text-green-800 uppercase tracking-wider">Assigned Room / Doctor:</p>
+                <p class="text-base font-black text-gray-900 mt-0.5">${t.station_name || 'Counter ' + t.counter_number}</p>
+                <p class="text-xs font-semibold text-green-700 mt-0.5">Counter ${t.counter_number} · Called at ${time}</p>
+              </div>
+              ${t.notes ? `<p class="text-xs text-gray-500 font-medium"><strong>Notes:</strong> ${t.notes}</p>` : ''}
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        resultBox.innerHTML = '<div class="p-4 bg-white border border-red-200 rounded-xl text-center text-xs text-red-600">Failed to search. Please check your connection.</div>';
       }
     }
 

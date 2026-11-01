@@ -247,6 +247,23 @@
           </div>
         </div>
 
+        <!-- Counter Patient History -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+              <i class="fa-solid fa-clock-rotate-left text-green-700"></i>
+              Today's Patients History
+            </h3>
+            <span id="historyCountBadge"
+              class="mono text-xs font-bold text-green-800 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">0</span>
+          </div>
+          <p class="text-[11px] sm:text-xs text-gray-400 mb-3">All patients handled by this room today. Tap <strong>Recall</strong> if they return.</p>
+
+          <div id="historyListContainer" class="space-y-2 max-h-[260px] overflow-y-auto pr-0.5">
+            <div class="text-center py-5 text-xs text-gray-400">No patients called yet today.</div>
+          </div>
+        </div>
+
         <!-- Live Counters Status (So Doctor knows who is currently serving) -->
         <div class="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
           <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -404,6 +421,7 @@
           document.getElementById('nextSequenceBadge').textContent = `#${result.data.nextNumber}`;
           renderActiveTicket(result.data.currentServing);
           renderSkippedList(result.data.skippedList);
+          renderHistory(result.data.history);
         }
 
         // Update counters summary
@@ -465,6 +483,41 @@
           </button>
         </div>
       `;
+      }).join('');
+    }
+
+    function renderHistory(history) {
+      document.getElementById('historyCountBadge').textContent = history ? history.length : 0;
+      const container = document.getElementById('historyListContainer');
+      if (!history || history.length === 0) {
+        container.innerHTML = '<div class="text-center py-5 text-xs text-gray-400">No patients called yet today.</div>';
+        return;
+      }
+
+      container.innerHTML = history.map(t => {
+        const time = t.called_at ? new Date(t.called_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--';
+        let badgeColor = 'bg-gray-100 text-gray-600 border-gray-200';
+        let statusLabel = t.status;
+        if (t.status === 'COMPLETED') { badgeColor = 'bg-green-50 text-green-700 border-green-200'; statusLabel = 'Done'; }
+        else if (t.status === 'CALLED' || t.status === 'SERVING') { badgeColor = 'bg-blue-50 text-blue-700 border-blue-200'; statusLabel = 'Serving'; }
+        else if (t.status === 'SKIPPED') { badgeColor = 'bg-amber-50 text-amber-700 border-amber-200'; statusLabel = 'Skipped'; }
+        else if (t.status === 'WAITING') { badgeColor = 'bg-purple-50 text-purple-700 border-purple-200'; statusLabel = 'Transferred'; }
+
+        return `
+        <div class="flex items-center justify-between p-2.5 rounded-xl border border-gray-100 bg-gray-50/70 hover:bg-gray-50 transition-colors text-xs">
+          <div class="min-w-0 flex-1 mr-2">
+            <div class="flex items-center gap-2">
+              <span class="mono font-black text-gray-900 text-sm">#${t.ticket_number}</span>
+              <span class="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border ${badgeColor}">${statusLabel}</span>
+            </div>
+            <p class="text-[10px] text-gray-400 mt-0.5 truncate">${time} ${t.notes ? '· ' + t.notes : ''}</p>
+          </div>
+          <button onclick="callSpecificToken('${t.ticket_number}')"
+            class="text-[11px] font-bold text-green-700 hover:text-white bg-white hover:bg-green-700 border border-green-300 px-2 py-1 rounded-lg transition-colors cursor-pointer shrink-0 shadow-2xs">
+            <i class="fa-solid fa-rotate-right text-[9px] mr-1"></i>Recall
+          </button>
+        </div>
+        `;
       }).join('');
     }
 

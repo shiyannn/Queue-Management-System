@@ -352,6 +352,56 @@ const queueService = {
     };
   },
 
+  // Get history of all tickets handled by a specific station today
+  getStationHistory(stationId, limit = 50) {
+    const today = getTodayString();
+    return db.prepare(`
+      SELECT 
+        t.id,
+        t.ticket_number,
+        t.department,
+        t.status,
+        t.notes,
+        t.called_at,
+        t.completed_at,
+        s.name as station_name,
+        s.counter_number,
+        s.type as station_type
+      FROM tickets t
+      LEFT JOIN stations s ON t.current_station_id = s.id
+      WHERE t.queue_date = ? 
+        AND (t.current_station_id = ? OR t.id IN (SELECT ticket_id FROM ticket_logs WHERE station_id = ?))
+      ORDER BY t.called_at DESC
+      LIMIT ?
+    `).all(today, stationId, stationId, limit);
+  },
+
+  // Lookup / Search ticket by number for today (e.g. "14", "#14", "D-2", "Rx-1")
+  lookupTicket(query) {
+    if (!query || !query.trim()) return [];
+    const clean = query.trim().replace(/^#/, '').toUpperCase();
+    const today = getTodayString();
+    return db.prepare(`
+      SELECT 
+        t.id,
+        t.ticket_number,
+        t.department,
+        t.status,
+        t.notes,
+        t.called_at,
+        t.completed_at,
+        s.name as station_name,
+        s.counter_number,
+        s.type as station_type
+      FROM tickets t
+      LEFT JOIN stations s ON t.current_station_id = s.id
+      WHERE t.queue_date = ? 
+        AND (t.ticket_number = ? OR t.ticket_number LIKE ?)
+      ORDER BY t.called_at DESC
+      LIMIT 10
+    `).all(today, clean, `%${clean}%`);
+  },
+
   // Reset today's queue back to 0/clean
   resetTodayQueue() {
     const today = getTodayString();
