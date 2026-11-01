@@ -493,8 +493,12 @@
       try {
         const res = await fetch(`/api/stations/${currentStationId}/call-next`, { method: 'POST' });
         const result = await res.json();
-        if (result.success) updateTerminalView();
-      } catch { alert('Network error'); }
+        if (result.success) {
+          updateTerminalView();
+        } else {
+          alert('Call error: ' + (result.error || 'Unknown error'));
+        }
+      } catch (err) { alert('Network error: ' + err.message); }
     }
 
     async function callSpecific() {
@@ -514,8 +518,12 @@
           body: JSON.stringify({ ticketNumber })
         });
         const result = await res.json();
-        if (result.success) updateTerminalView();
-      } catch { alert('Network error'); }
+        if (result.success) {
+          updateTerminalView();
+        } else {
+          alert('Call error: ' + (result.error || 'Unknown error'));
+        }
+      } catch (err) { alert('Network error: ' + err.message); }
     }
 
     async function recallActive() {

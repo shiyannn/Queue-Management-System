@@ -70,8 +70,28 @@ function initializeDatabase() {
     db.exec(`ALTER TABLE tickets ADD COLUMN department TEXT NOT NULL DEFAULT 'medical';`);
   } catch (e) {}
 
-  // Ensure default 4 stations are seeded
+  // Ensure default categories & stations are seeded
+  syncDefaultCategories();
   syncDefaultStations();
+}
+
+function syncDefaultCategories() {
+  const desiredCategories = [
+    { id: 1, name: 'Medical Consultation (Regular)', prefix: 'R', department: 'medical', priority_rank: 2, description: 'General walk-in consultation' },
+    { id: 2, name: 'Priority Medical (Senior / PWD / Pregnant)', prefix: 'P', department: 'medical', priority_rank: 1, description: 'Senior Citizens, PWDs, Pregnant Women' },
+    { id: 3, name: 'Dental Clinic (Regular)', prefix: 'D', department: 'dental', priority_rank: 2, description: 'Dental examination and oral care' },
+    { id: 4, name: 'Pharmacy / Dispensing', prefix: 'Rx', department: 'pharmacy', priority_rank: 2, description: 'Prescription dispensing' },
+    { id: 5, name: 'Emergency / Urgent Care', prefix: 'E', department: 'medical', priority_rank: 0, description: 'Immediate medical triage' },
+  ];
+
+  const count = db.prepare('SELECT COUNT(*) as count FROM categories').get().count;
+  if (count < 5) {
+    const insert = db.prepare(`
+      INSERT OR REPLACE INTO categories (id, name, prefix, department, priority_rank, description, active)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+    `);
+    desiredCategories.forEach(c => insert.run(c.id, c.name, c.prefix, c.department, c.priority_rank, c.description));
+  }
 }
 
 function syncDefaultStations() {

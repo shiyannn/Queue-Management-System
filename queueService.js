@@ -1,11 +1,8 @@
 const db = require('./database');
 
 function getTodayString() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  // Use Asia/Manila (UTC+8) so clinic queue dates stay consistent regardless of server host location
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
 }
 
 const queueService = {
