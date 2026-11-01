@@ -22,55 +22,56 @@
   </style>
 </head>
 
-<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col justify-between overflow-hidden select-none">
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col justify-between overflow-x-hidden overflow-y-auto lg:overflow-hidden select-none">
 
   <!-- Audio Unlock Banner -->
-  <div id="audioUnlockBanner" onclick="unlockAudio()" class="bg-green-700 text-white px-6 py-2.5 flex items-center justify-between text-xs font-semibold cursor-pointer z-50 hover:bg-green-800 transition-colors">
+  <div id="audioUnlockBanner" onclick="unlockAudio()" class="bg-green-700 text-white px-4 py-2.5 sm:px-6 flex items-center justify-between text-xs font-semibold cursor-pointer z-50 hover:bg-green-800 transition-colors">
     <span class="flex items-center gap-2">
       <i class="fa-solid fa-volume-high animate-pulse"></i>
-      Click anywhere on this screen to enable automatic voice announcements and hospital chime.
+      <span class="hidden sm:inline">Click anywhere on this screen to enable automatic voice announcements and hospital chime.</span>
+      <span class="sm:hidden">Tap anywhere to enable audio chime &amp; voice.</span>
     </span>
-    <span class="bg-white text-green-700 px-3 py-1 rounded-md font-bold uppercase tracking-wide text-[10px]">Enable Audio</span>
+    <span class="bg-white text-green-700 px-2.5 py-1 rounded-md font-bold uppercase tracking-wide text-[10px] shrink-0 ml-2">Enable Audio</span>
   </div>
 
   <!-- TV Header -->
-  <header class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center shadow-xs">
-    <div class="flex items-center gap-4">
-      <img src="/logo.jpg" alt="CHO Logo" class="w-12 h-12 rounded-full object-cover shadow-sm border border-gray-200">
-      <div>
-        <p class="text-xl font-black text-gray-900 tracking-tight leading-none">CITY HEALTH OFFICE — CITY OF NAGA</p>
-        <p class="text-xs font-semibold text-green-700 uppercase tracking-wider mt-1">Patient Queue Information Display</p>
+  <header class="bg-white border-b border-gray-200 px-4 py-3 sm:px-8 sm:py-4 flex justify-between items-center shadow-xs">
+    <div class="flex items-center gap-2.5 sm:gap-4 min-w-0">
+      <img src="/logo.jpg" alt="CHO Logo" class="w-9 h-9 sm:w-12 sm:h-12 rounded-full object-cover shadow-sm border border-gray-200 shrink-0">
+      <div class="min-w-0">
+        <p class="text-sm sm:text-xl font-black text-gray-900 tracking-tight leading-none truncate">CITY HEALTH OFFICE — NAGA</p>
+        <p class="text-[10px] sm:text-xs font-semibold text-green-700 uppercase tracking-wider mt-1 truncate">Patient Queue Information Display</p>
       </div>
     </div>
-    <div class="text-right">
-      <p id="clockTime" class="mono text-3xl font-black text-gray-900 leading-none">00:00:00</p>
-      <p id="clockDate" class="text-xs text-gray-400 uppercase tracking-wider mt-1 font-medium"></p>
+    <div class="text-right shrink-0 ml-2">
+      <p id="clockTime" class="mono text-lg sm:text-3xl font-black text-gray-900 leading-none">00:00:00</p>
+      <p id="clockDate" class="text-[10px] sm:text-xs text-gray-400 uppercase tracking-wider mt-0.5 sm:mt-1 font-medium hidden sm:block"></p>
     </div>
   </header>
 
   <!-- Main Grid Area -->
-  <main class="flex-1 p-6 grid grid-cols-12 gap-6 min-h-0">
+  <main class="flex-1 p-3 sm:p-6 grid grid-cols-12 gap-4 sm:gap-6 min-h-0">
 
     <!-- LEFT 7 COLS: Huge "NOW SERVING" Spotlight -->
     <div class="col-span-12 lg:col-span-7 flex flex-col">
-      <div id="spotlightCard" class="flex-1 bg-white rounded-3xl border-4 border-green-700 flex flex-col justify-center items-center text-center shadow-lg px-8 py-10 transition-all">
+      <div id="spotlightCard" class="flex-1 bg-white rounded-2xl sm:rounded-3xl border-3 sm:border-4 border-green-700 flex flex-col justify-center items-center text-center shadow-lg px-4 py-6 sm:px-8 sm:py-10 transition-all">
 
         <!-- Status Tag -->
-        <div class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-green-50 border border-green-200 text-xs font-black text-green-800 uppercase tracking-wider mb-4">
-          <span class="w-2.5 h-2.5 rounded-full bg-green-600 animate-ping inline-flex"></span>
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 sm:px-5 sm:py-2 rounded-full bg-green-50 border border-green-200 text-[11px] sm:text-xs font-black text-green-800 uppercase tracking-wider mb-2 sm:mb-4">
+          <span class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-green-600 animate-ping inline-flex"></span>
           <span id="spotlightTag">NOW SERVING TOKEN</span>
         </div>
 
         <!-- Huge Token Number -->
-        <p id="spotlightTicketNumber" class="mono font-black text-gray-900 leading-none my-4" style="font-size: clamp(6rem, 18vw, 13rem);">
+        <p id="spotlightTicketNumber" class="mono font-black text-gray-900 leading-none my-2 sm:my-4" style="font-size: clamp(4rem, 16vw, 12rem);">
           ---
         </p>
 
         <!-- Destination Station Box -->
-        <div class="w-full max-w-lg bg-gray-50 rounded-2xl p-6 border border-gray-200 mt-2">
-          <p class="text-xs text-gray-400 uppercase font-bold tracking-wider mb-1.5">Please Proceed To:</p>
-          <p id="spotlightStation" class="text-2xl sm:text-3xl font-black text-gray-900">—</p>
-          <div id="spotlightCounterBadge" class="mt-3 inline-block px-5 py-2 rounded-xl bg-green-700 text-white text-sm font-bold uppercase tracking-wider shadow-sm">
+        <div class="w-full max-w-lg bg-gray-50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-gray-200 mt-2">
+          <p class="text-[10px] sm:text-xs text-gray-400 uppercase font-bold tracking-wider mb-1">Please Proceed To:</p>
+          <p id="spotlightStation" class="text-xl sm:text-3xl font-black text-gray-900 leading-snug">—</p>
+          <div id="spotlightCounterBadge" class="mt-2.5 sm:mt-3 inline-block px-4 py-1.5 sm:px-5 sm:py-2 rounded-xl bg-green-700 text-white text-xs sm:text-sm font-bold uppercase tracking-wider shadow-sm">
             Counter —
           </div>
         </div>
@@ -78,48 +79,48 @@
       </div>
     </div>
 
-    <!-- RIGHT 5 COLS: 4 Station Counters Overview -->
+    <!-- RIGHT 5 COLS: 5 Station Counters Overview -->
     <div class="col-span-12 lg:col-span-5 flex flex-col">
-      <div class="flex-1 bg-white rounded-3xl border border-gray-200 shadow-sm flex flex-col p-6">
-        <div class="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
-          <h2 class="text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-wider">
+      <div class="flex-1 bg-white rounded-2xl sm:rounded-3xl border border-gray-200 shadow-sm flex flex-col p-4 sm:p-6">
+        <div class="flex items-center justify-between mb-3 pb-2.5 sm:mb-4 sm:pb-3 border-b border-gray-100">
+          <h2 class="text-xs sm:text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-wider">
             <i class="fa-solid fa-hospital-user text-green-700"></i> Clinic Counters Status
           </h2>
-          <span class="text-xs font-semibold text-gray-400">5 Active Counters</span>
+          <span class="text-[11px] sm:text-xs font-semibold text-gray-400">5 Active Counters</span>
         </div>
 
-        <div id="activeStationsList" class="flex-1 flex flex-col justify-around gap-2.5">
-          <div class="text-center py-10 text-gray-400 text-sm">Connecting...</div>
+        <div id="activeStationsList" class="flex-1 flex flex-col justify-around gap-2 sm:gap-2.5">
+          <div class="text-center py-8 sm:py-10 text-gray-400 text-sm">Connecting...</div>
         </div>
       </div>
     </div>
   </main>
 
   <!-- Bottom Ticker: Next Expected Tokens in Line -->
-  <footer class="bg-white border-t border-gray-200 px-8 py-3.5 flex items-center justify-between gap-6 shadow-sm">
+  <footer class="bg-white border-t border-gray-200 px-4 py-2.5 sm:px-8 sm:py-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-6 shadow-sm">
     <div class="flex items-center gap-2 whitespace-nowrap">
-      <span class="w-2.5 h-2.5 rounded-full bg-green-600 animate-pulse"></span>
-      <span class="text-xs font-black text-green-800 uppercase tracking-wider">BE READY / NEXT IN LINE:</span>
+      <span class="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-green-600 animate-pulse"></span>
+      <span class="text-[11px] sm:text-xs font-black text-green-800 uppercase tracking-wider">NEXT IN LINE:</span>
     </div>
     
-    <div id="upcomingTicker" class="flex items-center gap-4 overflow-x-hidden flex-1">
-      <div class="flex items-center gap-2">
+    <div id="upcomingTicker" class="flex items-center gap-3 sm:gap-4 overflow-x-auto w-full sm:w-auto flex-1 pb-1 sm:pb-0">
+      <div class="flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
         <span class="text-xs font-bold text-gray-500">Medical:</span>
         <span id="nextMedTokens" class="mono text-xs font-bold text-green-700">#1, #2, #3</span>
       </div>
       <span class="text-gray-300">|</span>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
         <span class="text-xs font-bold text-gray-500">Dental:</span>
         <span id="nextDentTokens" class="mono text-xs font-bold text-teal-700">#D-1, #D-2</span>
       </div>
       <span class="text-gray-300">|</span>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
         <span class="text-xs font-bold text-gray-500">Pharmacy:</span>
         <span id="nextPharmTokens" class="mono text-xs font-bold text-indigo-700">#Rx-1</span>
       </div>
     </div>
 
-    <div class="text-xs text-gray-400 font-medium whitespace-nowrap hidden sm:block">
+    <div class="text-[11px] text-gray-400 font-medium whitespace-nowrap hidden lg:block">
       City Health Office Walk-In Queue
     </div>
   </footer>

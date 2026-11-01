@@ -29,27 +29,27 @@
 
   <!-- Top Navigation Bar -->
   <header class="border-b border-gray-200 bg-white sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-      <div class="flex items-center gap-3.5">
+    <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 sm:py-4 flex justify-between items-center gap-2">
+      <div class="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
         <img src="/logo.jpg" alt="City Health Office Logo"
-          class="w-11 h-11 rounded-full object-cover shadow-xs border border-gray-200">
-        <div>
-          <div class="text-base font-extrabold text-gray-900 leading-tight">City Health Office — City of Naga</div>
-          <div class="text-xs text-gray-500 font-medium">Outpatient Department (OPD) Queue Management</div>
+          class="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover shadow-xs border border-gray-200 shrink-0">
+        <div class="min-w-0">
+          <div class="text-xs sm:text-base font-extrabold text-gray-900 leading-tight truncate">City Health Office — Naga</div>
+          <div class="text-[10px] sm:text-xs text-gray-500 font-medium truncate">Outpatient Department (OPD)</div>
         </div>
       </div>
 
-      <div class="flex items-center gap-6">
+      <div class="flex items-center gap-3 sm:gap-6 shrink-0">
         <a href="/display" target="_blank"
-          class="text-sm font-semibold text-gray-600 hover:text-green-700 transition-colors flex items-center gap-2">
-          <i class="fa-solid fa-tv text-xs"></i> TV Display
+          class="text-xs sm:text-sm font-semibold text-gray-600 hover:text-green-700 transition-colors flex items-center gap-1.5 sm:gap-2">
+          <i class="fa-solid fa-tv text-xs"></i> <span class="hidden sm:inline">TV </span>Display
         </a>
         <a href="/staff" target="_blank"
-          class="text-sm font-bold text-green-700 border-b-2 border-green-700 pb-0.5 flex items-center gap-2">
-          <i class="fa-solid fa-user-doctor text-xs"></i> Doctor &amp; Staff Terminal
+          class="text-xs sm:text-sm font-bold text-green-700 border-b-2 border-green-700 pb-0.5 flex items-center gap-1.5 sm:gap-2">
+          <i class="fa-solid fa-user-doctor text-xs"></i> <span class="hidden sm:inline">Doctor &amp; Staff </span>Terminal
         </a>
         <div id="liveTime"
-          class="mono text-xs text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg font-bold border border-gray-200 hidden sm:block">
+          class="mono text-xs text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg font-bold border border-gray-200 hidden md:block">
           --:--:--
         </div>
       </div>
@@ -58,17 +58,17 @@
 
   <!-- Hero Section -->
   <main class="flex-1">
-    <section class="max-w-7xl mx-auto px-6 py-12 border-b border-gray-100">
-      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+    <section class="max-w-7xl mx-auto px-4 py-8 sm:px-6 sm:py-12 border-b border-gray-100">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 sm:gap-8">
         <div class="max-w-2xl">
           <p class="text-xs font-bold text-green-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full bg-green-600 inline-block"></span>
             City Health Office — City of Naga
           </p>
-          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight tracking-tight mb-4">
+          <h1 class="text-2xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight tracking-tight mb-3 sm:mb-4">
             Patient Queue Management System
           </h1>
-          <p class="text-base text-gray-500 leading-relaxed">
+          <p class="text-sm sm:text-base text-gray-500 leading-relaxed">
             Centralized queue coordination for General Medical Consultation, Dental Clinic, and Pharmacy Dispensing
             services.
             Enables orderly First-In, First-Out (FIFO) patient flow with real-time audio-visual notifications on waiting
@@ -76,33 +76,33 @@
           </p>
 
           <!-- Launch Action Buttons -->
-          <div class="flex flex-wrap items-center gap-4 mt-8">
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mt-6 sm:mt-8">
             <a href="/staff" target="_blank"
-              class="inline-flex items-center gap-2.5 px-6 py-3.5 bg-green-700 hover:bg-green-800 text-white text-sm font-bold rounded-xl transition-all shadow-sm hover:shadow-md active:scale-95">
+              class="inline-flex items-center justify-center gap-2.5 px-5 py-3.5 bg-green-700 hover:bg-green-800 active:bg-green-900 text-white text-sm font-bold rounded-xl transition-all shadow-sm hover:shadow-md active:scale-95 text-center">
               <i class="fa-solid fa-user-doctor"></i> Open Doctor &amp; Staff Terminal
             </a>
             <a href="/display" target="_blank"
-              class="inline-flex items-center gap-2.5 px-6 py-3.5 border border-gray-300 text-gray-700 hover:border-green-700 hover:text-green-700 text-sm font-bold rounded-xl transition-all active:scale-95">
+              class="inline-flex items-center justify-center gap-2.5 px-5 py-3.5 border border-gray-300 text-gray-700 hover:border-green-700 hover:text-green-700 text-sm font-bold rounded-xl transition-all active:scale-95 text-center">
               <i class="fa-solid fa-tv"></i> Open Waiting Area TV
             </a>
           </div>
         </div>
 
         <!-- Quick Summary Stats Card -->
-        <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 sm:p-7 w-full lg:max-w-sm shadow-xs">
-          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Today's Queue Summary</p>
-          <div class="space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-gray-200">
-              <span class="text-sm font-medium text-gray-600">Total Patients Called</span>
-              <span id="statTotalCalled" class="mono text-2xl font-black text-gray-900">0</span>
+        <div class="bg-gray-50 border border-gray-200 rounded-2xl p-5 sm:p-7 w-full lg:max-w-sm shadow-xs">
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 sm:mb-4">Today's Queue Summary</p>
+          <div class="space-y-3 sm:space-y-4">
+            <div class="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-gray-200">
+              <span class="text-xs sm:text-sm font-medium text-gray-600">Total Patients Called</span>
+              <span id="statTotalCalled" class="mono text-xl sm:text-2xl font-black text-gray-900">0</span>
             </div>
-            <div class="flex items-center justify-between pb-3 border-b border-gray-200">
-              <span class="text-sm font-medium text-gray-600">Currently in Room</span>
-              <span id="statServing" class="mono text-2xl font-black text-green-700">0</span>
+            <div class="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-gray-200">
+              <span class="text-xs sm:text-sm font-medium text-gray-600">Currently in Room</span>
+              <span id="statServing" class="mono text-xl sm:text-2xl font-black text-green-700">0</span>
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-sm font-medium text-gray-600">Active Counters</span>
-              <span class="mono text-sm font-bold text-green-800 bg-green-100 px-2.5 py-1 rounded-lg">5 Counters</span>
+              <span class="text-xs sm:text-sm font-medium text-gray-600">Active Counters</span>
+              <span class="mono text-xs sm:text-sm font-bold text-green-800 bg-green-100 px-2.5 py-1 rounded-lg">5 Counters</span>
             </div>
           </div>
         </div>
@@ -110,13 +110,12 @@
     </section>
 
     <!-- Real-Time Counter Status Section -->
-    <section class="max-w-7xl mx-auto px-6 py-10 border-b border-gray-100">
-      <div class="flex flex-wrap items-end justify-between gap-4 mb-6">
+    <section class="max-w-7xl mx-auto px-4 py-8 sm:px-6 sm:py-10 border-b border-gray-100">
+      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
         <div>
           <p class="text-xs font-bold text-green-700 uppercase tracking-wider mb-1">Live Counter Activity</p>
-          <h2 class="text-2xl font-black text-gray-900 tracking-tight">Active Consultation Counters</h2>
-          <p class="text-sm text-gray-500 mt-0.5">Real-time status for 3 Medical Doctors, 1 Dental Clinic, and 1
-            Pharmacy</p>
+          <h2 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Active Consultation Counters</h2>
+          <p class="text-xs sm:text-sm text-gray-500 mt-0.5">Real-time status for 3 Medical Doctors, 1 Dental Clinic, and 1 Pharmacy</p>
         </div>
 
         <button onclick="resetDailyQueue()"

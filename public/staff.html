@@ -34,38 +34,37 @@
 
     <!-- Picker Header -->
     <header class="bg-white border-b border-gray-200">
-      <div class="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
-        <div class="flex items-center gap-3">
-          <img src="/logo.jpg" alt="CHO Logo" class="w-9 h-9 rounded-full object-cover shadow-xs border border-gray-200">
-          <div>
-            <p class="text-sm font-bold text-gray-900 leading-tight">City Health Office — City of Naga</p>
-            <p class="text-xs text-gray-500">Doctor &amp; Staff Calling Terminal</p>
+      <div class="max-w-5xl mx-auto px-4 py-3 sm:px-6 sm:py-4 flex justify-between items-center">
+        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <img src="/logo.jpg" alt="CHO Logo" class="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover shadow-xs border border-gray-200 shrink-0">
+          <div class="min-w-0">
+            <p class="text-xs sm:text-sm font-bold text-gray-900 leading-tight truncate">City Health Office — Naga</p>
+            <p class="text-[11px] sm:text-xs text-gray-500 truncate">Doctor &amp; Staff Calling Terminal</p>
           </div>
         </div>
         <a href="/"
-          class="text-xs font-semibold text-gray-500 hover:text-green-700 flex items-center gap-1.5 transition-colors">
-          <i class="fa-solid fa-house text-[10px]"></i> Control Hub
+          class="text-xs font-semibold text-gray-500 hover:text-green-700 flex items-center gap-1.5 transition-colors shrink-0 ml-2">
+          <i class="fa-solid fa-house text-[10px]"></i> <span class="hidden xs:inline">Control Hub</span>
         </a>
       </div>
     </header>
 
     <!-- Picker Body -->
-    <main class="flex-1 flex flex-col justify-center max-w-3xl w-full mx-auto px-6 py-12">
-      <div class="mb-8">
-        <p class="text-xs font-semibold text-green-700 uppercase tracking-widder mb-2">Calling Token System</p>
-        <h1 class="text-3xl sm:text-4xl font-black text-gray-900 leading-tight mb-3">
+    <main class="flex-1 flex flex-col justify-center max-w-3xl w-full mx-auto px-4 py-6 sm:px-6 sm:py-10">
+      <div class="mb-6 sm:mb-8">
+        <p class="text-xs font-semibold text-green-700 uppercase tracking-wider mb-1.5">Calling Token System</p>
+        <h1 class="text-2xl sm:text-4xl font-black text-gray-900 leading-tight mb-2 sm:mb-3">
           Select Your Counter
         </h1>
-        <p class="text-sm text-gray-500 max-w-lg leading-relaxed">
-          Choose your assigned counter below. Your tablet will lock to this room so you can call the next patient token
-          with one tap.
+        <p class="text-xs sm:text-sm text-gray-500 max-w-lg leading-relaxed">
+          Choose your assigned counter below. Your phone or tablet will lock to this station so you can call the next patient token with one tap.
         </p>
       </div>
 
-      <div class="border-t border-gray-200 mb-8"></div>
+      <div class="border-t border-gray-200 mb-6 sm:mb-8"></div>
 
       <!-- Stations Grid -->
-      <div id="stationPickerGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div id="stationPickerGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div class="col-span-full text-center py-12 text-gray-400 text-sm">Loading clinic counters...</div>
       </div>
     </main>
@@ -78,33 +77,32 @@
 
     <!-- Header -->
     <header class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-xs">
-      <div class="max-w-7xl mx-auto px-6 py-3.5 flex flex-wrap justify-between items-center gap-4">
+      <div class="max-w-7xl mx-auto px-4 py-2.5 sm:px-6 sm:py-3.5 flex justify-between items-center gap-2 sm:gap-4">
 
         <!-- Counter Identity -->
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <div id="headerCounterBadge"
-            class="w-10 h-10 rounded-lg bg-green-700 flex items-center justify-center text-white font-black text-sm mono">
+            class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-green-700 flex items-center justify-center text-white font-black text-xs sm:text-sm mono shrink-0">
             C1
           </div>
-          <div>
-            <p id="headerStationName" class="text-sm font-bold text-gray-900 leading-tight">General Consultation (Doctor
-              1)</p>
-            <p id="headerStationSub" class="text-xs text-gray-500">Counter 1 · Medical</p>
+          <div class="min-w-0">
+            <p id="headerStationName" class="text-xs sm:text-sm font-bold text-gray-900 leading-tight truncate">Doctor 1</p>
+            <p id="headerStationSub" class="text-[11px] sm:text-xs text-gray-500 truncate">Counter 1 · Medical</p>
           </div>
         </div>
 
         <!-- Quick Actions -->
-        <div class="flex items-center gap-3">
-          <div id="terminalClock" class="mono text-xs text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg hidden sm:block">
+        <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div id="terminalClock" class="mono text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-lg hidden md:block">
             --:--:--</div>
 
           <button onclick="switchCounter()"
-            class="text-xs font-semibold text-gray-600 hover:text-green-700 border border-gray-300 hover:border-green-600 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer">
-            <i class="fa-solid fa-shuffle text-[10px]"></i> Switch Counter
+            class="text-xs font-semibold text-gray-600 hover:text-green-700 border border-gray-300 hover:border-green-600 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer">
+            <i class="fa-solid fa-shuffle text-[10px]"></i> <span class="hidden sm:inline">Switch Counter</span><span class="sm:hidden">Switch</span>
           </button>
 
           <a href="/"
-            class="text-sm text-gray-400 hover:text-green-700 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            class="text-sm text-gray-400 hover:text-green-700 p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 transition-colors"
             title="Control Hub">
             <i class="fa-solid fa-house"></i>
           </a>
@@ -113,111 +111,120 @@
     </header>
 
     <!-- Work Area -->
-    <main class="flex-1 max-w-7xl mx-auto w-full px-6 py-6 grid grid-cols-12 gap-6">
+    <main class="flex-1 max-w-7xl mx-auto w-full px-3 py-4 sm:px-6 sm:py-6 grid grid-cols-12 gap-4 sm:gap-6">
 
       <!-- LEFT 7 COLS: Calling Action & Active Patient -->
-      <div class="col-span-12 lg:col-span-7 space-y-5">
+      <div class="col-span-12 lg:col-span-7 space-y-4 sm:space-y-5">
 
         <!-- Big "CALL NEXT TOKEN" Card -->
-        <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-            <div>
-              <p class="text-xs font-semibold text-green-700 uppercase tracking-wider mb-0.5">Pre-Printed Token Queue
-              </p>
-              <h2 id="terminalStationTitle" class="text-xl font-black text-gray-900">Doctor 1</h2>
+        <div class="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 shadow-sm">
+          <div class="flex items-center justify-between gap-3 mb-4 sm:mb-5">
+            <div class="min-w-0">
+              <p class="text-[10px] sm:text-xs font-semibold text-green-700 uppercase tracking-wider mb-0.5">Queue Station</p>
+              <h2 id="terminalStationTitle" class="text-lg sm:text-xl font-black text-gray-900 truncate">Doctor 1</h2>
             </div>
-            <div class="flex items-center gap-2 bg-green-50 border border-green-200 px-3 py-1.5 rounded-xl">
-              <span class="text-xs text-green-800 font-semibold">Next in line:</span>
-              <span id="nextSequenceBadge" class="mono text-base font-black text-green-800">#1</span>
+            <div class="flex items-center gap-1.5 sm:gap-2 bg-green-50 border border-green-200 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl shrink-0">
+              <span class="text-[11px] sm:text-xs text-green-800 font-semibold">Next:</span>
+              <span id="nextSequenceBadge" class="mono text-sm sm:text-base font-black text-green-800">#1</span>
             </div>
           </div>
 
           <!-- Big FIFO Button -->
           <button onclick="callNext()"
-            class="w-full py-6 rounded-2xl bg-green-700 hover:bg-green-800 active:bg-green-900 text-white font-black text-2xl tracking-tight flex items-center justify-center gap-4 transition-all shadow-md shadow-green-900/10 cursor-pointer mb-5">
-            <i class="fa-solid fa-bullhorn text-3xl"></i>
+            class="w-full py-4 sm:py-6 rounded-xl sm:rounded-2xl bg-green-700 hover:bg-green-800 active:bg-green-900 text-white font-black text-lg sm:text-2xl tracking-tight flex items-center justify-center gap-2.5 sm:gap-4 transition-all shadow-md shadow-green-900/10 cursor-pointer mb-4 sm:mb-5 active:scale-[0.98]">
+            <i class="fa-solid fa-bullhorn text-2xl sm:text-3xl"></i>
             <span>CALL NEXT TOKEN</span>
           </button>
 
           <!-- Direct / Specific Number Call Input -->
-          <div class="pt-4 border-t border-gray-100 flex items-center gap-2">
-            <label for="specificNumberInput" class="text-xs font-semibold text-gray-500 whitespace-nowrap">Call Specific
-              Token:</label>
-            <input type="text" id="specificNumberInput" placeholder="e.g. 5 or D-2"
-              class="mono text-sm uppercase font-bold bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex-1 focus:outline-none focus:ring-2 focus:ring-green-600 focus:bg-white"
-              onkeypress="if(event.key === 'Enter') callSpecific();" />
-            <button onclick="callSpecific()"
-              class="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer">
-              Call
-            </button>
+          <div class="pt-3 sm:pt-4 border-t border-gray-100 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            <div class="flex items-center justify-between sm:justify-start gap-2">
+              <label for="specificNumberInput" class="text-xs font-semibold text-gray-600 whitespace-nowrap">Call Specific Token:</label>
+            </div>
+            <div class="flex items-center gap-2 flex-1">
+              <input type="text" id="specificNumberInput" placeholder="e.g. 5, D-2, Rx-1"
+                class="mono text-sm uppercase font-bold bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex-1 focus:outline-none focus:ring-2 focus:ring-green-600 focus:bg-white"
+                onkeypress="if(event.key === 'Enter') callSpecific();" />
+              <button onclick="callSpecific()"
+                class="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer shrink-0">
+                Call
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- Current Serving Patient Card -->
-        <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <div class="flex justify-between items-center pb-4 border-b border-gray-100 mb-5">
+        <div class="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6 shadow-sm">
+          <div class="flex justify-between items-center pb-3 sm:pb-4 border-b border-gray-100 mb-4 sm:mb-5">
             <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">Current Token at Counter</p>
             <span id="activeTicketStatus"
-              class="text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">
+              class="text-[11px] sm:text-xs font-bold uppercase px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">
               Counter Ready
             </span>
           </div>
 
           <!-- Empty State -->
-          <div id="noActivePatientMsg" class="text-center py-10">
+          <div id="noActivePatientMsg" class="text-center py-8 sm:py-10">
             <div
-              class="w-12 h-12 rounded-full bg-gray-100 text-gray-400 mx-auto flex items-center justify-center text-xl mb-3">
+              class="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gray-100 text-gray-400 mx-auto flex items-center justify-center text-lg sm:text-xl mb-3">
               <i class="fa-regular fa-user"></i>
             </div>
             <p class="text-sm font-semibold text-gray-700">Counter is currently ready</p>
             <p class="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
-              Click <strong>CALL NEXT TOKEN</strong> above to advance the pre-printed queue and ring the waiting area
-              TV.
+              Tap <strong>CALL NEXT TOKEN</strong> above to advance the pre-printed queue and ring the waiting area TV.
             </p>
           </div>
 
           <!-- Active Patient Details -->
           <div id="activePatientBox" class="hidden">
-            <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+            <div class="flex items-start justify-between gap-3 mb-5 sm:mb-6">
               <div>
                 <p class="text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">Now Serving</p>
-                <div class="flex items-baseline gap-2">
+                <div class="flex items-baseline gap-1.5 sm:gap-2">
                   <span class="text-xs font-bold text-gray-400 mono">TOKEN</span>
-                  <span id="activeTicketNumber" class="mono text-6xl font-black text-gray-900 leading-none">#1</span>
+                  <span id="activeTicketNumber" class="mono text-5xl sm:text-6xl font-black text-gray-900 leading-none">#1</span>
                 </div>
-                <p class="text-xs text-gray-400 mt-2" id="activeNotes"></p>
+                <p class="text-xs text-gray-500 mt-2 font-medium" id="activeNotes"></p>
               </div>
-              <div class="text-right bg-gray-50 px-4 py-3 rounded-xl border border-gray-100">
+              <div class="text-right bg-gray-50 px-3 py-2 sm:px-4 sm:py-3 rounded-xl border border-gray-100 shrink-0">
                 <p class="text-[10px] text-gray-400 uppercase font-semibold">Time Called</p>
-                <p class="mono text-base font-bold text-gray-800 mt-0.5" id="activeCalledAt">--:--</p>
+                <p class="mono text-sm sm:text-base font-bold text-gray-800 mt-0.5" id="activeCalledAt">--:--</p>
               </div>
             </div>
 
             <!-- Quick Action Buttons -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5 border-t border-gray-100">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-4 sm:pt-5 border-t border-gray-100">
               <!-- 1. Recall -->
               <button onclick="recallActive()"
-                class="py-3 rounded-xl border border-gray-200 bg-white hover:border-green-600 hover:bg-green-50 text-gray-700 hover:text-green-700 text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer shadow-xs">
+                class="py-3 px-2 rounded-xl border border-gray-200 bg-white hover:border-green-600 hover:bg-green-50 active:bg-green-100 text-gray-700 hover:text-green-700 text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer shadow-xs min-h-[52px]">
                 <i class="fa-solid fa-bell text-sm text-green-700"></i>
                 <span>Recall / Ring</span>
               </button>
 
               <!-- 2. Skip -->
               <button onclick="skipActive()"
-                class="py-3 rounded-xl border border-gray-200 bg-white hover:border-amber-500 hover:bg-amber-50 text-gray-700 hover:text-amber-700 text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer shadow-xs">
+                class="py-3 px-2 rounded-xl border border-gray-200 bg-white hover:border-amber-500 hover:bg-amber-50 active:bg-amber-100 text-gray-700 hover:text-amber-700 text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer shadow-xs min-h-[52px]">
                 <i class="fa-solid fa-forward-step text-sm text-amber-600"></i>
-                <span>Skip / No-Show</span>
+                <span>Skip</span>
               </button>
 
               <!-- 3. Transfer -->
               <button onclick="openTransferModal()"
-                class="py-3 rounded-xl border border-gray-200 bg-white hover:border-teal-600 hover:bg-teal-50 text-gray-700 hover:text-teal-700 text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer shadow-xs">
+                class="py-3 px-2 rounded-xl border border-gray-200 bg-white hover:border-teal-600 hover:bg-teal-50 active:bg-teal-100 text-gray-700 hover:text-teal-700 text-xs font-bold flex flex-col items-center justify-center gap-1 transition-all cursor-pointer shadow-xs min-h-[52px]">
                 <i class="fa-solid fa-share-nodes text-sm text-teal-600"></i>
                 <span>Transfer</span>
               </button>
 
               <!-- 4. Done -->
               <button onclick="completeActive()"
+                class="py-3 px-2 rounded-xl bg-green-700 hover:bg-green-800 active:bg-green-900 text-white text-xs font-bold flex flex-col items-center justify-center gap-1 transition-colors shadow-sm cursor-pointer min-h-[52px]">
+                <i class="fa-solid fa-check text-sm"></i>
+                <span>Done</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
                 class="py-3 rounded-xl bg-green-700 hover:bg-green-800 active:bg-green-900 text-white text-xs font-bold flex flex-col items-center gap-1.5 transition-colors shadow-sm cursor-pointer">
                 <i class="fa-solid fa-check text-sm"></i>
                 <span>Complete / Done</span>
@@ -346,19 +353,19 @@
         return `
         <button
           onclick="enterTerminal(${st.id})"
-          class="border border-gray-200 hover:border-green-600 rounded-2xl p-6 bg-white text-left hover:shadow-md transition-all cursor-pointer">
-          <div class="flex items-center justify-between mb-4">
-            <div class="w-11 h-11 rounded-xl ${theme.bg} flex items-center justify-center text-white text-lg shadow-2xs">
+          class="border border-gray-200 hover:border-green-600 rounded-xl sm:rounded-2xl p-4 sm:p-6 bg-white text-left hover:shadow-md transition-all cursor-pointer active:scale-[0.99]">
+          <div class="flex items-center justify-between mb-3 sm:mb-4">
+            <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl ${theme.bg} flex items-center justify-center text-white text-base sm:text-lg shadow-2xs">
               <i class="fa-solid ${theme.icon}"></i>
             </div>
             <span class="text-[11px] font-bold uppercase px-2.5 py-0.5 rounded-full ${theme.badge}">
               Counter ${st.counter_number}
             </span>
           </div>
-          <p class="text-xs font-semibold text-green-700 mb-1">${theme.label}</p>
-          <h3 class="text-lg font-black text-gray-900 mb-1 leading-snug">${st.name}</h3>
-          <p class="text-xs text-gray-400 mb-4">${st.code}</p>
-          <div class="pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-green-700">
+          <p class="text-[11px] sm:text-xs font-semibold text-green-700 mb-1">${theme.label}</p>
+          <h3 class="text-base sm:text-lg font-black text-gray-900 mb-1 leading-snug">${st.name}</h3>
+          <p class="text-xs text-gray-400 mb-3 sm:mb-4">${st.code}</p>
+          <div class="pt-2.5 sm:pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-green-700">
             <span>Tap to select counter</span>
             <i class="fa-solid fa-arrow-right text-[10px]"></i>
           </div>
