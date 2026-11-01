@@ -48,8 +48,8 @@ const queueService = {
     `).get(stationId, today);
   },
 
-  // Call the next sequential pre-printed token in FIFO order
-  callNextToken(stationId) {
+  // Call the next sequential pre-printed token in FIFO order (supports regular or priority)
+  callNextToken(stationId, isPriority = false) {
     const today = getTodayString();
     const station = db.prepare('SELECT * FROM stations WHERE id = ?').get(stationId);
     if (!station) throw new Error(`Station ${stationId} not found`);
@@ -81,31 +81,41 @@ const queueService = {
       const isDental = station.type === 'dental';
       const isPharmacy = station.type === 'pharmacy';
       const dept = isDental ? 'dental' : (isPharmacy ? 'pharmacy' : 'medical');
+      const priorityFlag = isPriority ? 1 : 0;
 
       const lastSeqRow = db.prepare(`
         SELECT MAX(sequence_number) as max_seq 
         FROM tickets 
-        WHERE department = ? AND queue_date = ?
-      `).get(dept, today);
+        WHERE department = ? AND is_priority = ? AND queue_date = ?
+      `).get(dept, priorityFlag, today);
 
       const nextSeq = (lastSeqRow && lastSeqRow.max_seq ? lastSeqRow.max_seq : 0) + 1;
-      const ticketNumber = isDental ? `D-${nextSeq}` : (isPharmacy ? `Rx-${nextSeq}` : `${nextSeq}`);
+      let ticketNumber;
+      if (isPriority) {
+        ticketNumber = isDental ? `DP-${nextSeq}` : (isPharmacy ? `RxP-${nextSeq}` : `P-${nextSeq}`);
+      } else {
+        ticketNumber = isDental ? `D-${nextSeq}` : (isPharmacy ? `Rx-${nextSeq}` : `${nextSeq}`);
+      }
 
-      const defaultCatId = isDental ? 3 : (isPharmacy ? 4 : 1);
+      const defaultCatId = isPriority ? 2 : (isDental ? 3 : (isPharmacy ? 4 : 1));
       const insert = db.prepare(`
         INSERT INTO tickets (
-          ticket_number, department, category_id, current_station_id, status,
+          ticket_number, department, is_priority, category_id, current_station_id, status,
           queue_date, sequence_number, created_at, called_at
-        ) VALUES (?, ?, ?, ?, 'CALLED', ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, 'CALLED', ?, ?, ?, ?)
       `);
 
-      const result = insert.run(ticketNumber, dept, defaultCatId, stationId, today, nextSeq, nowIso, nowIso);
+      const result = insert.run(ticketNumber, dept, priorityFlag, defaultCatId, stationId, today, nextSeq, nowIso, nowIso);
       const ticketId = result.lastInsertRowid;
+
+      const logDesc = isPriority 
+        ? `Called PRIORITY token ${ticketNumber} at ${station.name}` 
+        : `Called token ${ticketNumber} at ${station.name}`;
 
       db.prepare(`
         INSERT INTO ticket_logs (ticket_id, station_id, action, details, timestamp)
         VALUES (?, ?, 'CALLED', ?, ?)
-      `).run(ticketId, stationId, `Called token ${ticketNumber} at ${station.name}`, nowIso);
+      `).run(ticketId, stationId, logDesc, nowIso);
 
       return this.getTicketById(ticketId);
     });
@@ -151,18 +161,20 @@ const queueService = {
       const isDental = station.type === 'dental';
       const isPharmacy = station.type === 'pharmacy';
       const dept = isDental ? 'dental' : (isPharmacy ? 'pharmacy' : 'medical');
-      const defaultCatId = isDental ? 3 : (isPharmacy ? 4 : 1);
+      const isPriority = cleanNumber.startsWith('P') || cleanNumber.startsWith('DP') || cleanNumber.startsWith('RXP');
+      const priorityFlag = isPriority ? 1 : 0;
+      const defaultCatId = isPriority ? 2 : (isDental ? 3 : (isPharmacy ? 4 : 1));
       const seqMatch = cleanNumber.match(/\d+/);
       const seqNum = seqMatch ? parseInt(seqMatch[0], 10) : 1;
 
       const insert = db.prepare(`
         INSERT INTO tickets (
-          ticket_number, department, category_id, current_station_id, status,
+          ticket_number, department, is_priority, category_id, current_station_id, status,
           queue_date, sequence_number, created_at, called_at
-        ) VALUES (?, ?, ?, ?, 'CALLED', ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, 'CALLED', ?, ?, ?, ?)
       `);
 
-      const result = insert.run(cleanNumber, dept, defaultCatId, stationId, today, seqNum, nowIso, nowIso);
+      const result = insert.run(cleanNumber, dept, priorityFlag, defaultCatId, stationId, today, seqNum, nowIso, nowIso);
       const ticketId = result.lastInsertRowid;
 
       db.prepare(`
@@ -273,29 +285,35 @@ const queueService = {
     `).all(today);
   },
 
-  // Next expected token numbers
+  // Next expected token numbers (regular + priority)
   getNextExpected() {
     const today = getTodayString();
-    const medMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'medical' AND queue_date = ?`).get(today);
-    const dentMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'dental' AND queue_date = ?`).get(today);
+    const medMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'medical' AND is_priority = 0 AND queue_date = ?`).get(today);
+    const priorityMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'medical' AND is_priority = 1 AND queue_date = ?`).get(today);
+    const dentMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'dental' AND is_priority = 0 AND queue_date = ?`).get(today);
+    const dentPriorityMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'dental' AND is_priority = 1 AND queue_date = ?`).get(today);
     const pharmMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'pharmacy' AND queue_date = ?`).get(today);
 
     const nextMed = (medMax && medMax.m ? medMax.m : 0) + 1;
+    const nextPriority = (priorityMax && priorityMax.m ? priorityMax.m : 0) + 1;
     const nextDent = (dentMax && dentMax.m ? dentMax.m : 0) + 1;
+    const nextDentPriority = (dentPriorityMax && dentPriorityMax.m ? dentPriorityMax.m : 0) + 1;
     const nextPharm = (pharmMax && pharmMax.m ? pharmMax.m : 0) + 1;
 
     return {
-      medical: [nextMed, nextMed + 1, nextMed + 2],
+      medical: [nextMed, nextMed + 1],
+      priority: [`P-${nextPriority}`, `P-${nextPriority + 1}`],
       dental: [`D-${nextDent}`, `D-${nextDent + 1}`],
+      dentalPriority: [`DP-${nextDentPriority}`],
       pharmacy: [`Rx-${nextPharm}`, `Rx-${nextPharm + 1}`]
     };
   },
 
-  // Next expected token for a specific station (prioritizes transferred patients)
+  // Next expected token for a specific station (regular + priority)
   getNextForStation(stationId) {
     const today = getTodayString();
     const station = db.prepare('SELECT * FROM stations WHERE id = ?').get(stationId);
-    if (!station) return '1';
+    if (!station) return { regular: '1', priority: 'P-1', waitingTransferred: null };
 
     const transferred = db.prepare(`
       SELECT ticket_number FROM tickets 
@@ -303,18 +321,18 @@ const queueService = {
       ORDER BY created_at ASC LIMIT 1
     `).get(stationId, today);
 
-    if (transferred) {
-      return `${transferred.ticket_number} (Transferred)`;
-    }
-
     const nextExpected = this.getNextExpected();
-    if (station.type === 'dental') {
-      return nextExpected.dental[0];
-    } else if (station.type === 'pharmacy') {
-      return nextExpected.pharmacy[0];
-    } else {
-      return nextExpected.medical[0];
-    }
+    const isDental = station.type === 'dental';
+    const isPharmacy = station.type === 'pharmacy';
+
+    const regular = isDental ? nextExpected.dental[0] : (isPharmacy ? nextExpected.pharmacy[0] : `${nextExpected.medical[0]}`);
+    const priority = isDental ? nextExpected.dentalPriority[0] : (isPharmacy ? `Rx-P` : nextExpected.priority[0]);
+
+    return {
+      regular,
+      priority,
+      waitingTransferred: transferred ? transferred.ticket_number : null
+    };
   },
 
   // Recent calls (last 6 calls)

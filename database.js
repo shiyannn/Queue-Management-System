@@ -33,7 +33,8 @@ function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS tickets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       ticket_number TEXT NOT NULL,
-      department TEXT NOT NULL DEFAULT 'medical', -- 'medical', 'dental'
+      department TEXT NOT NULL DEFAULT 'medical', -- 'medical', 'dental', 'pharmacy'
+      is_priority INTEGER NOT NULL DEFAULT 0, -- 1 = Senior / PWD / Pregnant, 0 = Regular
       category_id INTEGER,
       current_station_id INTEGER,
       patient_name TEXT,
@@ -65,9 +66,12 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_tickets_current_station ON tickets(current_station_id);
   `);
 
-  // Ensure department column exists in tickets
+  // Ensure department and is_priority columns exist in tickets
   try {
     db.exec(`ALTER TABLE tickets ADD COLUMN department TEXT NOT NULL DEFAULT 'medical';`);
+  } catch (e) {}
+  try {
+    db.exec(`ALTER TABLE tickets ADD COLUMN is_priority INTEGER NOT NULL DEFAULT 0;`);
   } catch (e) {}
 
   // Ensure default categories & stations are seeded

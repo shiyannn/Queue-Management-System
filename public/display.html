@@ -105,8 +105,13 @@
     
     <div id="upcomingTicker" class="flex items-center gap-3 sm:gap-4 overflow-x-auto w-full sm:w-auto flex-1 pb-1 sm:pb-0">
       <div class="flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
-        <span class="text-xs font-bold text-gray-500">Medical:</span>
-        <span id="nextMedTokens" class="mono text-xs font-bold text-green-700">#1, #2, #3</span>
+        <span class="text-xs font-black text-amber-700 flex items-center gap-1"><i class="fa-solid fa-star text-[10px]"></i> Priority:</span>
+        <span id="nextPriorityTokens" class="mono text-xs font-bold text-amber-800">#P-1</span>
+      </div>
+      <span class="text-gray-300">|</span>
+      <div class="flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
+        <span class="text-xs font-bold text-gray-500">Regular:</span>
+        <span id="nextMedTokens" class="mono text-xs font-bold text-green-700">#1, #2</span>
       </div>
       <span class="text-gray-300">|</span>
       <div class="flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
@@ -165,10 +170,11 @@
       }
     }
 
-    function speakTicket(ticketNumber, stationName, counterNumber) {
+    function speakTicket(ticketNumber, stationName, counterNumber, isPriority = false) {
       if (!('speechSynthesis' in window)) return;
       const cleanNum = ticketNumber.replace('#', '');
-      const text = `Now serving token number ${cleanNum}. Please proceed to Counter ${counterNumber}, ${stationName}.`;
+      const priorityPrefix = isPriority || cleanNum.startsWith('P') || cleanNum.startsWith('DP') ? 'Priority patient. ' : '';
+      const text = `${priorityPrefix}Now serving token number ${cleanNum}. Please proceed to Counter ${counterNumber}, ${stationName}.`;
 
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
@@ -183,7 +189,19 @@
       void card.offsetWidth;
       card.classList.add('flash-call');
 
-      document.getElementById('spotlightTag').textContent = isRecall ? 'RECALLING TOKEN' : 'NOW SERVING TOKEN';
+      const isPriority = ticket.is_priority === 1 || String(ticket.ticket_number).startsWith('P') || String(ticket.ticket_number).startsWith('DP');
+      const tagEl = document.getElementById('spotlightTag');
+
+      if (isPriority) {
+        tagEl.innerHTML = '<i class="fa-solid fa-star text-amber-500 mr-1"></i> PRIORITY PATIENT (SENIOR / PWD)';
+        tagEl.parentElement.className = 'inline-flex items-center gap-2 px-3.5 py-1.5 sm:px-5 sm:py-2 rounded-full bg-amber-50 border border-amber-300 text-[11px] sm:text-xs font-black text-amber-900 uppercase tracking-wider mb-2 sm:mb-4';
+        card.className = 'flex-1 bg-white rounded-2xl sm:rounded-3xl border-3 sm:border-4 border-amber-500 flex flex-col justify-center items-center text-center shadow-xl px-4 py-6 sm:px-8 sm:py-10 transition-all';
+      } else {
+        tagEl.textContent = isRecall ? 'RECALLING TOKEN' : 'NOW SERVING TOKEN';
+        tagEl.parentElement.className = 'inline-flex items-center gap-2 px-3.5 py-1.5 sm:px-5 sm:py-2 rounded-full bg-green-50 border border-green-200 text-[11px] sm:text-xs font-black text-green-800 uppercase tracking-wider mb-2 sm:mb-4';
+        card.className = 'flex-1 bg-white rounded-2xl sm:rounded-3xl border-3 sm:border-4 border-green-700 flex flex-col justify-center items-center text-center shadow-lg px-4 py-6 sm:px-8 sm:py-10 transition-all';
+      }
+
       document.getElementById('spotlightTicketNumber').textContent = `#${ticket.ticket_number}`;
       document.getElementById('spotlightStation').textContent = stationName || '—';
       document.getElementById('spotlightCounterBadge').textContent = `Counter ${counterNumber}`;
@@ -229,6 +247,10 @@
 
     function renderNextExpected(nextExpected) {
       if (!nextExpected) return;
+      if (nextExpected.priority) {
+        const prEl = document.getElementById('nextPriorityTokens');
+        if (prEl) prEl.textContent = nextExpected.priority.map(n => `#${n}`).join(', ');
+      }
       if (nextExpected.medical) {
         document.getElementById('nextMedTokens').textContent = nextExpected.medical.map(n => `#${n}`).join(', ');
       }
@@ -265,7 +287,7 @@
       updateSpotlight(payload.ticket, payload.stationName, payload.counterNumber, payload.isRecall);
       if (audioUnlocked) {
         playChime();
-        speakTicket(payload.ticketNumber, payload.stationName, payload.counterNumber);
+        speakTicket(payload.ticketNumber, payload.stationName, payload.counterNumber, payload.isPriority);
       }
     });
   </script>

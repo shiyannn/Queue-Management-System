@@ -91,4 +91,9 @@ CHO-QUEUEING/
     ├── display.html   # Public Waiting Area TV with Chime & Voice
     └── staff.html     # Doctor & Staff calling panel
 ```
-
+doctor name for each terminal
+dra. mennie doc 1
+dr. perry doc two
+dr. dhiet doc 3
+dra. yvonne dental
+pharmacist: 

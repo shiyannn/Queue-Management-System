@@ -48,14 +48,16 @@ app.get('/api/stations', (req, res) => {
 app.post('/api/stations/:id/call-next', (req, res) => {
   try {
     const stationId = Number(req.params.id);
-    const ticket = queueService.callNextToken(stationId);
+    const isPriority = req.body && Boolean(req.body.isPriority);
+    const ticket = queueService.callNextToken(stationId, isPriority);
 
     notifyQueueUpdate('ticket:called', {
       ticket,
       stationId,
       stationName: ticket.station_name,
       counterNumber: ticket.counter_number,
-      ticketNumber: ticket.ticket_number
+      ticketNumber: ticket.ticket_number,
+      isPriority: ticket.is_priority === 1
     });
 
     res.json({ success: true, data: ticket });
@@ -76,7 +78,8 @@ app.post('/api/stations/:id/call-specific', (req, res) => {
       stationId,
       stationName: ticket.station_name,
       counterNumber: ticket.counter_number,
-      ticketNumber: ticket.ticket_number
+      ticketNumber: ticket.ticket_number,
+      isPriority: ticket.is_priority === 1
     });
 
     res.json({ success: true, data: ticket });
@@ -155,6 +158,8 @@ app.get('/api/stations/:id/terminal', (req, res) => {
     const skippedList = queueService.getSkippedTickets(station.type);
     const history = queueService.getStationHistory(stationId, 30);
 
+    const nextForStation = queueService.getNextForStation(stationId);
+
     res.json({
       success: true,
       data: {
@@ -162,7 +167,8 @@ app.get('/api/stations/:id/terminal', (req, res) => {
         currentServing,
         skippedList,
         history,
-        nextNumber: queueService.getNextForStation(stationId)
+        nextNumbers: nextForStation,
+        nextNumber: nextForStation.waitingTransferred || nextForStation.regular
       }
     });
   } catch (err) {
