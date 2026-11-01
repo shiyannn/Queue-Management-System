@@ -174,7 +174,7 @@
       if (!('speechSynthesis' in window)) return;
       const cleanNum = ticketNumber.replace('#', '');
       const priorityPrefix = isPriority || cleanNum.startsWith('P') || cleanNum.startsWith('DP') ? 'Priority patient. ' : '';
-      const text = `${priorityPrefix}Now serving token number ${cleanNum}. Please proceed to Counter ${counterNumber}, ${stationName}.`;
+      const text = `${priorityPrefix}Now serving token number ${cleanNum}. Please proceed to ${stationName}, Counter ${counterNumber}.`;
 
       window.speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);

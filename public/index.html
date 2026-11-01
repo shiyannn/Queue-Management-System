@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>City Health Office — City of Naga | Clinic Queue Management</title>
+  <title>City Health Office II — City of Naga | Clinic Queue Management</title>
   <link rel="icon" type="image/jpeg" href="/logo.jpg">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -34,7 +34,8 @@
         <img src="/logo.jpg" alt="City Health Office Logo"
           class="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover shadow-xs border border-gray-200 shrink-0">
         <div class="min-w-0">
-          <div class="text-xs sm:text-base font-extrabold text-gray-900 leading-tight truncate">City Health Office — Naga</div>
+          <div class="text-xs sm:text-base font-extrabold text-gray-900 leading-tight truncate">City Health Office II —
+            Naga</div>
           <div class="text-[10px] sm:text-xs text-gray-500 font-medium truncate">Outpatient Department (OPD)</div>
         </div>
       </div>
@@ -46,7 +47,8 @@
         </a>
         <a href="/staff" target="_blank"
           class="text-xs sm:text-sm font-bold text-green-700 border-b-2 border-green-700 pb-0.5 flex items-center gap-1.5 sm:gap-2">
-          <i class="fa-solid fa-user-doctor text-xs"></i> <span class="hidden sm:inline">Doctor &amp; Staff </span>Terminal
+          <i class="fa-solid fa-user-doctor text-xs"></i> <span class="hidden sm:inline">Doctor &amp; Staff
+          </span>Terminal
         </a>
         <div id="liveTime"
           class="mono text-xs text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg font-bold border border-gray-200 hidden md:block">
@@ -63,9 +65,10 @@
         <div class="max-w-2xl">
           <p class="text-xs font-bold text-green-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full bg-green-600 inline-block"></span>
-            City Health Office — City of Naga
+            City Health Office II — City of Naga
           </p>
-          <h1 class="text-2xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight tracking-tight mb-3 sm:mb-4">
+          <h1
+            class="text-2xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight tracking-tight mb-3 sm:mb-4">
             Patient Queue Management System
           </h1>
           <p class="text-sm sm:text-base text-gray-500 leading-relaxed">
@@ -102,7 +105,8 @@
             </div>
             <div class="flex items-center justify-between">
               <span class="text-xs sm:text-sm font-medium text-gray-600">Active Counters</span>
-              <span class="mono text-xs sm:text-sm font-bold text-green-800 bg-green-100 px-2.5 py-1 rounded-lg">5 Counters</span>
+              <span class="mono text-xs sm:text-sm font-bold text-green-800 bg-green-100 px-2.5 py-1 rounded-lg">5
+                Counters</span>
             </div>
           </div>
         </div>
@@ -112,7 +116,8 @@
     <!-- Token & Doctor Lookup / Station Finder -->
     <section class="max-w-7xl mx-auto px-4 py-8 sm:px-6 border-b border-gray-100 bg-gray-50/60">
       <div class="max-w-2xl mx-auto text-center">
-        <p class="text-xs font-bold text-green-700 uppercase tracking-wider mb-1 flex items-center justify-center gap-1.5">
+        <p
+          class="text-xs font-bold text-green-700 uppercase tracking-wider mb-1 flex items-center justify-center gap-1.5">
           <i class="fa-solid fa-magnifying-glass"></i> Patient Token &amp; Doctor Lookup
         </p>
         <h2 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight mb-2">Find Assigned Room or Doctor</h2>
@@ -123,7 +128,8 @@
         <!-- Search Input -->
         <div class="flex items-center gap-2 max-w-md mx-auto">
           <div class="relative flex-1">
-            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 font-bold mono">#</span>
+            <span
+              class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 font-bold mono">#</span>
             <input type="text" id="tokenSearchInput" placeholder="Enter token number (e.g. 5, D-2, Rx-1)"
               class="w-full pl-8 pr-4 py-3 rounded-xl border border-gray-300 bg-white mono text-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-green-600 shadow-xs"
               onkeypress="if(event.key === 'Enter') lookupToken();" />
@@ -145,7 +151,8 @@
         <div>
           <p class="text-xs font-bold text-green-700 uppercase tracking-wider mb-1">Live Counter Activity</p>
           <h2 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Active Consultation Counters</h2>
-          <p class="text-xs sm:text-sm text-gray-500 mt-0.5">Real-time status for 3 Medical Doctors, 1 Dental Clinic, and 1 Pharmacy</p>
+          <p class="text-xs sm:text-sm text-gray-500 mt-0.5">Real-time status for 3 Medical Doctors, 1 Dental Clinic,
+            and 1 Pharmacy</p>
         </div>
 
         <button onclick="resetDailyQueue()"
@@ -217,10 +224,10 @@
 
     // Default static stations so cards NEVER show empty or stuck in loading
     const defaultStations = [
-      { counter_number: 1, station_name: 'General Consultation (Doctor 1)', station_type: 'medical', ticket_number: null },
-      { counter_number: 2, station_name: 'General Consultation (Doctor 2)', station_type: 'medical', ticket_number: null },
-      { counter_number: 3, station_name: 'General Consultation (Doctor 3)', station_type: 'medical', ticket_number: null },
-      { counter_number: 4, station_name: 'Dental Clinic', station_type: 'dental', ticket_number: null },
+      { counter_number: 1, station_name: 'Dra. Mennie', station_type: 'medical', ticket_number: null },
+      { counter_number: 2, station_name: 'Dr. Perry', station_type: 'medical', ticket_number: null },
+      { counter_number: 3, station_name: 'Dr. Dhiet', station_type: 'medical', ticket_number: null },
+      { counter_number: 4, station_name: 'Dra. Yvonne', station_type: 'dental', ticket_number: null },
       { counter_number: 5, station_name: 'Pharmacy / Dispensing', station_type: 'pharmacy', ticket_number: null }
     ];
 

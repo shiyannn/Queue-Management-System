@@ -100,28 +100,34 @@ function syncDefaultCategories() {
 
 function syncDefaultStations() {
   const desiredStations = [
-    { id: 1, name: 'General Consultation (Doctor 1)', code: 'DOC-1', counter: 1, type: 'medical' },
-    { id: 2, name: 'General Consultation (Doctor 2)', code: 'DOC-2', counter: 2, type: 'medical' },
-    { id: 3, name: 'General Consultation (Doctor 3)', code: 'DOC-3', counter: 3, type: 'medical' },
-    { id: 4, name: 'Dental Clinic', code: 'DENT-1', counter: 4, type: 'dental' },
+    { id: 1, name: 'Dra. Mennie', code: 'DOC-1', counter: 1, type: 'medical' },
+    { id: 2, name: 'Dr. Perry', code: 'DOC-2', counter: 2, type: 'medical' },
+    { id: 3, name: 'Dr. Dhiet', code: 'DOC-3', counter: 3, type: 'medical' },
+    { id: 4, name: 'Dra. Yvonne', code: 'DENT-1', counter: 4, type: 'dental' },
     { id: 5, name: 'Pharmacy / Dispensing', code: 'PHARM-1', counter: 5, type: 'pharmacy' },
   ];
 
+  // Always upsert station names so renames take effect without clearing data
+  const upsert = db.prepare(`
+    INSERT INTO stations (id, name, code, counter_number, type, active)
+    VALUES (?, ?, ?, ?, ?, 1)
+    ON CONFLICT(id) DO UPDATE SET
+      name = excluded.name,
+      code = excluded.code,
+      counter_number = excluded.counter_number,
+      type = excluded.type,
+      active = 1
+  `);
   const count = db.prepare('SELECT COUNT(*) as count FROM stations').get().count;
   if (count !== 5) {
-    const syncTx = db.transaction(() => {
-      db.exec(`
-        DELETE FROM ticket_logs;
-        DELETE FROM tickets;
-        DELETE FROM stations;
-      `);
-      const insert = db.prepare(`
-        INSERT INTO stations (id, name, code, counter_number, type, active)
-        VALUES (?, ?, ?, ?, ?, 1)
-      `);
-      desiredStations.forEach(s => insert.run(s.id, s.name, s.code, s.counter, s.type));
-    });
-    syncTx();
+    // Fresh DB — clear any stale data and insert cleanly
+    db.transaction(() => {
+      db.exec(`DELETE FROM ticket_logs; DELETE FROM tickets; DELETE FROM stations;`);
+      desiredStations.forEach(s => upsert.run(s.id, s.name, s.code, s.counter, s.type));
+    })();
+  } else {
+    // Existing DB — just update names/codes in-place, preserve queue data
+    desiredStations.forEach(s => upsert.run(s.id, s.name, s.code, s.counter, s.type));
   }
 }
 
