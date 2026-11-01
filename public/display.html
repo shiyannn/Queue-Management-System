@@ -133,6 +133,11 @@
   <script>
     const socket = io();
     let audioUnlocked = false;
+    let audioCtx = null;
+    let chimeNodes = [];
+    const announceQueue = [];
+    let isAnnouncing = false;
+    const recentlyAnnounced = new Map();
 
     function updateClock() {
       const now = new Date();
@@ -145,13 +150,30 @@
     function unlockAudio() {
       audioUnlocked = true;
       document.getElementById('audioUnlockBanner').classList.add('hidden');
+      getAudioContext();
       playChime();
+    }
+
+    function getAudioContext() {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return null;
+      if (!audioCtx) audioCtx = new AudioContext();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function stopChime() {
+      chimeNodes.forEach(osc => {
+        try { osc.stop(); } catch (e) {}
+      });
+      chimeNodes = [];
     }
 
     function playChime() {
       try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        const ctx = new AudioContext();
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        stopChime();
         const now = ctx.currentTime;
         [[587.33, now, 0.6], [880, now + 0.3, 0.9]].forEach(([freq, start, end]) => {
           const osc = ctx.createOscillator();
@@ -164,23 +186,85 @@
           gain.connect(ctx.destination);
           osc.start(start);
           osc.stop(end);
+          chimeNodes.push(osc);
+          osc.onended = () => { chimeNodes = chimeNodes.filter(n => n !== osc); };
         });
       } catch (e) {
         console.warn('Audio chime error:', e);
       }
     }
 
-    function speakTicket(ticketNumber, stationName, counterNumber, isPriority = false) {
-      if (!('speechSynthesis' in window)) return;
-      const cleanNum = ticketNumber.replace('#', '');
-      const priorityPrefix = isPriority || cleanNum.startsWith('P') || cleanNum.startsWith('DP') ? 'Priority patient. ' : '';
-      const text = `${priorityPrefix}Now serving token number ${cleanNum}. Please proceed to ${stationName}, Counter ${counterNumber}.`;
+    function toSpeechName(name) {
+      return String(name || '')
+        .replace(/\bDra\./g, 'Doctora')
+        .replace(/\bDr\./g, 'Doctor');
+    }
 
-      window.speechSynthesis.cancel();
+    function buildAnnouncementText(payload) {
+      const cleanNum = String(payload.ticketNumber || '').replace('#', '');
+      const spokenStation = toSpeechName(payload.stationName);
+      const priorityPrefix = payload.isPriority || cleanNum.startsWith('P') || cleanNum.startsWith('DP') ? 'Priority patient. ' : '';
+      return `${priorityPrefix}Now serving token number ${cleanNum}. Please proceed to ${spokenStation}, Counter ${payload.counterNumber}.`;
+    }
+
+    function enqueueAnnouncement(payload) {
+      const key = `${payload.ticketNumber}|${payload.stationName}|${payload.counterNumber}`;
+      const now = Date.now();
+      if (now - (recentlyAnnounced.get(key) || 0) < 5000) return;
+      recentlyAnnounced.set(key, now);
+      for (const [k, t] of recentlyAnnounced) {
+        if (now - t > 60000) recentlyAnnounced.delete(k);
+      }
+
+      if (!audioUnlocked) {
+        updateSpotlight(payload.ticket, payload.stationName, payload.counterNumber, payload.isRecall);
+        return;
+      }
+
+      announceQueue.push(payload);
+      processAnnouncementQueue();
+    }
+
+    function processAnnouncementQueue() {
+      if (isAnnouncing || announceQueue.length === 0) return;
+      isAnnouncing = true;
+      const payload = announceQueue.shift();
+
+      updateSpotlight(payload.ticket, payload.stationName, payload.counterNumber, payload.isRecall);
+      playChime();
+      setTimeout(() => speakAnnouncement(payload), 700);
+    }
+
+    function speakAnnouncement(payload) {
+      if (!('speechSynthesis' in window)) {
+        finishAnnouncement();
+        return;
+      }
+
+      const text = buildAnnouncementText(payload);
       const u = new SpeechSynthesisUtterance(text);
       u.rate = 0.88;
       u.pitch = 1.0;
-      setTimeout(() => window.speechSynthesis.speak(u), 700);
+
+      let done = false;
+      let guard = null;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        if (guard) clearTimeout(guard);
+        finishAnnouncement();
+      };
+
+      u.onend = finish;
+      u.onerror = finish;
+      guard = setTimeout(finish, Math.max(6000, text.split(/\s+/).length * 800));
+
+      window.speechSynthesis.speak(u);
+    }
+
+    function finishAnnouncement() {
+      isAnnouncing = false;
+      setTimeout(processAnnouncementQueue, 400);
     }
 
     function updateSpotlight(ticket, stationName, counterNumber, isRecall = false) {
@@ -284,11 +368,15 @@
     });
 
     socket.on('ticket:called', (payload) => {
-      updateSpotlight(payload.ticket, payload.stationName, payload.counterNumber, payload.isRecall);
-      if (audioUnlocked) {
-        playChime();
-        speakTicket(payload.ticketNumber, payload.stationName, payload.counterNumber, payload.isPriority);
-      }
+      enqueueAnnouncement(payload);
+    });
+
+    socket.on('queue:reset', () => {
+      announceQueue.length = 0;
+      isAnnouncing = false;
+      recentlyAnnounced.clear();
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      stopChime();
     });
   </script>
 </body>
