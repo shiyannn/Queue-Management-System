@@ -95,5 +95,6 @@ doctor name for each terminal
 dra. mennie doc 1
 dr. perry doc two
 dr. dhiet doc 3
+dr. cabral doc 4
 dra. yvonne dental
 pharmacist: 

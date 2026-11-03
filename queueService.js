@@ -8,7 +8,7 @@ function getTodayString() {
 const queueService = {
   getTodayString,
 
-  // Get active stations (Doctor 1, Doctor 2, Doctor 3, Dental Clinic)
+  // Get active stations (Doctor 1, Doctor 2, Doctor 3, Doctor 4, Dental Clinic, Pharmacy)
   getStations() {
     return db.prepare('SELECT * FROM stations WHERE active = 1 ORDER BY counter_number ASC').all();
   },
@@ -94,7 +94,7 @@ const queueService = {
       if (isPriority) {
         ticketNumber = isDental ? `DP-${nextSeq}` : (isPharmacy ? `RxP-${nextSeq}` : `P-${nextSeq}`);
       } else {
-        ticketNumber = isDental ? `D-${nextSeq}` : (isPharmacy ? `Rx-${nextSeq}` : `${nextSeq}`);
+        ticketNumber = isDental ? `D-${nextSeq}` : (isPharmacy ? `Rx-${nextSeq}` : `R-${nextSeq}`);
       }
 
       const defaultCatId = isPriority ? 2 : (isDental ? 3 : (isPharmacy ? 4 : 1));
@@ -141,10 +141,20 @@ const queueService = {
         db.prepare(`INSERT INTO ticket_logs (ticket_id, station_id, action, details, timestamp) VALUES (?, ?, 'COMPLETED', 'Completed on specific call', ?)`).run(current.id, stationId, nowIso);
       }
 
+      const isDental = station.type === 'dental';
+      const isPharmacy = station.type === 'pharmacy';
+      const dept = isDental ? 'dental' : (isPharmacy ? 'pharmacy' : 'medical');
+
+      // Normalize a bare number (e.g. "5") to the station's prefixed token (e.g. "R-5")
+      const bareMatch = cleanNumber.match(/^\d+$/);
+      const normalizedNumber = bareMatch
+        ? (isDental ? `D-${cleanNumber}` : (isPharmacy ? `Rx-${cleanNumber}` : `R-${cleanNumber}`))
+        : cleanNumber;
+
       // Check if ticket already exists today (e.g. was SKIPPED or HOLD)
       const existing = db.prepare(`
-        SELECT id FROM tickets WHERE ticket_number = ? AND queue_date = ? LIMIT 1
-      `).get(cleanNumber, today);
+        SELECT id FROM tickets WHERE ticket_number IN (?, ?) AND queue_date = ? LIMIT 1
+      `).get(cleanNumber, normalizedNumber, today);
 
       if (existing) {
         db.prepare(`
@@ -158,13 +168,10 @@ const queueService = {
       }
 
       // If new, insert directly
-      const isDental = station.type === 'dental';
-      const isPharmacy = station.type === 'pharmacy';
-      const dept = isDental ? 'dental' : (isPharmacy ? 'pharmacy' : 'medical');
-      const isPriority = cleanNumber.startsWith('P') || cleanNumber.startsWith('DP') || cleanNumber.startsWith('RXP');
+      const isPriority = normalizedNumber.startsWith('P') || normalizedNumber.startsWith('DP') || normalizedNumber.startsWith('RXP');
       const priorityFlag = isPriority ? 1 : 0;
       const defaultCatId = isPriority ? 2 : (isDental ? 3 : (isPharmacy ? 4 : 1));
-      const seqMatch = cleanNumber.match(/\d+/);
+      const seqMatch = normalizedNumber.match(/\d+/);
       const seqNum = seqMatch ? parseInt(seqMatch[0], 10) : 1;
 
       const insert = db.prepare(`
@@ -174,13 +181,13 @@ const queueService = {
         ) VALUES (?, ?, ?, ?, ?, 'CALLED', ?, ?, ?, ?)
       `);
 
-      const result = insert.run(cleanNumber, dept, priorityFlag, defaultCatId, stationId, today, seqNum, nowIso, nowIso);
+      const result = insert.run(normalizedNumber, dept, priorityFlag, defaultCatId, stationId, today, seqNum, nowIso, nowIso);
       const ticketId = result.lastInsertRowid;
 
       db.prepare(`
         INSERT INTO ticket_logs (ticket_id, station_id, action, details, timestamp)
         VALUES (?, ?, 'CALLED', ?, ?)
-      `).run(ticketId, stationId, `Called specific token ${cleanNumber}`, nowIso);
+      `).run(ticketId, stationId, `Called specific token ${normalizedNumber}`, nowIso);
 
       return this.getTicketById(ticketId);
     });
@@ -301,7 +308,7 @@ const queueService = {
     const nextPharm = (pharmMax && pharmMax.m ? pharmMax.m : 0) + 1;
 
     return {
-      medical: [nextMed, nextMed + 1],
+      medical: [`R-${nextMed}`, `R-${nextMed + 1}`],
       priority: [`P-${nextPriority}`, `P-${nextPriority + 1}`],
       dental: [`D-${nextDent}`, `D-${nextDent + 1}`],
       dentalPriority: [`DP-${nextDentPriority}`],
@@ -313,7 +320,7 @@ const queueService = {
   getNextForStation(stationId) {
     const today = getTodayString();
     const station = db.prepare('SELECT * FROM stations WHERE id = ?').get(stationId);
-    if (!station) return { regular: '1', priority: 'P-1', waitingTransferred: null };
+    if (!station) return { regular: 'R-1', priority: 'P-1', waitingTransferred: null };
 
     const transferred = db.prepare(`
       SELECT ticket_number FROM tickets 
@@ -325,7 +332,7 @@ const queueService = {
     const isDental = station.type === 'dental';
     const isPharmacy = station.type === 'pharmacy';
 
-    const regular = isDental ? nextExpected.dental[0] : (isPharmacy ? nextExpected.pharmacy[0] : `${nextExpected.medical[0]}`);
+    const regular = isDental ? nextExpected.dental[0] : (isPharmacy ? nextExpected.pharmacy[0] : nextExpected.medical[0]);
     const priority = isDental ? nextExpected.dentalPriority[0] : (isPharmacy ? `Rx-P` : nextExpected.priority[0]);
 
     return {

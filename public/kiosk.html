@@ -107,7 +107,7 @@
           </div>
           <div class="flex justify-between">
             <span class="text-gray-500 font-medium">Queue For</span>
-            <span class="font-semibold text-gray-900" id="modalStationDesc">Doctors 1, 2, 3</span>
+            <span class="font-semibold text-gray-900" id="modalStationDesc">Doctors 1, 2, 3, 4</span>
           </div>
           <div class="flex justify-between">
             <span class="text-gray-500 font-medium">Date</span>
@@ -173,7 +173,7 @@
     }
 
     const categoryConfig = {
-      'R': { label: 'Medical — Regular', step: 'Medical Walk-in', icon: 'fa-user-doctor', accent: 'text-green-700', border: 'border-gray-200 hover:border-green-600', badge: 'Doctors 1, 2, 3' },
+      'R': { label: 'Medical — Regular', step: 'Medical Walk-in', icon: 'fa-user-doctor', accent: 'text-green-700', border: 'border-gray-200 hover:border-green-600', badge: 'Doctors 1, 2, 3, 4' },
       'P': { label: 'Medical — Priority', step: 'Senior / PWD / Pregnant', icon: 'fa-wheelchair', accent: 'text-amber-700', border: 'border-amber-200 hover:border-amber-500 bg-amber-50/40', badge: 'Priority Lane' },
       'D': { label: 'Dental — Regular', step: 'Dental Walk-in', icon: 'fa-tooth', accent: 'text-teal-700', border: 'border-gray-200 hover:border-teal-600', badge: 'Dental Clinic' },
       'DP': { label: 'Dental — Priority', step: 'Senior / PWD / Pregnant', icon: 'fa-tooth', accent: 'text-amber-700', border: 'border-amber-200 hover:border-amber-500 bg-amber-50/40', badge: 'Dental Priority' },
@@ -226,7 +226,7 @@
     function showModal(ticket) {
       document.getElementById('modalTicketNumber').textContent = ticket.ticket_number;
       document.getElementById('modalCategoryName').textContent = ticket.category_name;
-      document.getElementById('modalStationDesc').textContent = ticket.category_department === 'dental' ? 'Dental Clinic (Counter 4)' : 'Doctors 1, 2, 3 Pool';
+      document.getElementById('modalStationDesc').textContent = ticket.category_department === 'dental' ? 'Dental Clinic (Counter 5)' : 'Doctors 1, 2, 3, 4 Pool';
 
       const now = new Date(ticket.created_at);
       document.getElementById('modalDate').textContent = now.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });

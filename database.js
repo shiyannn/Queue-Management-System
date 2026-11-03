@@ -9,7 +9,7 @@ db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
 function initializeDatabase() {
-  // Stations / Rooms (3 Doctors + 1 Dental)
+  // Stations / Rooms (4 Doctors + 1 Dental + Pharmacy)
   db.exec(`
     CREATE TABLE IF NOT EXISTS stations (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,8 +103,9 @@ function syncDefaultStations() {
     { id: 1, name: 'Dra. Mennie', code: 'DOC-1', counter: 1, type: 'medical' },
     { id: 2, name: 'Dr. Perry', code: 'DOC-2', counter: 2, type: 'medical' },
     { id: 3, name: 'Dr. Dhiet', code: 'DOC-3', counter: 3, type: 'medical' },
-    { id: 4, name: 'Dra. Yvonne', code: 'DENT-1', counter: 4, type: 'dental' },
-    { id: 5, name: 'Pharmacy / Dispensing', code: 'PHARM-1', counter: 5, type: 'pharmacy' },
+    { id: 6, name: 'Dr. Cabral', code: 'DOC-4', counter: 4, type: 'medical' },
+    { id: 4, name: 'Dra. Yvonne', code: 'DENT-1', counter: 5, type: 'dental' },
+    { id: 5, name: 'Pharmacy / Dispensing', code: 'PHARM-1', counter: 6, type: 'pharmacy' },
   ];
 
   // Always upsert station names so renames take effect without clearing data
@@ -119,14 +120,14 @@ function syncDefaultStations() {
       active = 1
   `);
   const count = db.prepare('SELECT COUNT(*) as count FROM stations').get().count;
-  if (count !== 5) {
+  if (count === 0) {
     // Fresh DB — clear any stale data and insert cleanly
     db.transaction(() => {
       db.exec(`DELETE FROM ticket_logs; DELETE FROM tickets; DELETE FROM stations;`);
       desiredStations.forEach(s => upsert.run(s.id, s.name, s.code, s.counter, s.type));
     })();
   } else {
-    // Existing DB — just update names/codes in-place, preserve queue data
+    // Existing DB — just update names/codes/counters in-place, preserve queue data
     desiredStations.forEach(s => upsert.run(s.id, s.name, s.code, s.counter, s.type));
   }
 }
