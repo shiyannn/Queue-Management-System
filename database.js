@@ -69,10 +69,10 @@ function initializeDatabase() {
   // Ensure department and is_priority columns exist in tickets
   try {
     db.exec(`ALTER TABLE tickets ADD COLUMN department TEXT NOT NULL DEFAULT 'medical';`);
-  } catch (e) {}
+  } catch (e) { }
   try {
     db.exec(`ALTER TABLE tickets ADD COLUMN is_priority INTEGER NOT NULL DEFAULT 0;`);
-  } catch (e) {}
+  } catch (e) { }
 
   // Ensure default categories & stations are seeded
   syncDefaultCategories();
@@ -100,12 +100,12 @@ function syncDefaultCategories() {
 
 function syncDefaultStations() {
   const desiredStations = [
-    { id: 1, name: 'Dra. Mennie', code: 'DOC-1', counter: 1, type: 'medical' },
-    { id: 2, name: 'Dr. Perry', code: 'DOC-2', counter: 2, type: 'medical' },
-    { id: 3, name: 'Dr. Dhiet', code: 'DOC-3', counter: 3, type: 'medical' },
-    { id: 6, name: 'Dr. Cabral', code: 'DOC-4', counter: 4, type: 'medical' },
-    { id: 4, name: 'Dra. Yvonne', code: 'DENT-1', counter: 5, type: 'dental' },
-    { id: 5, name: 'Pharmacy / Dispensing', code: 'PHARM-1', counter: 6, type: 'pharmacy' },
+    { id: 2, name: 'Dra. Mennie', code: 'DOC-2', counter: 2, type: 'medical' },
+    { id: 3, name: 'Dr. Perry', code: 'DOC-3', counter: 3, type: 'medical' },
+    { id: 4, name: 'Dr. Dhieter', code: 'DOC-4', counter: 4, type: 'medical' },
+    { id: 1, name: 'Dr. Cabral', code: 'DOC-1', counter: 1, type: 'medical' },
+    { id: 5, name: 'Dra. Yvonne', code: 'DENT-1', counter: 5, type: 'dental' },
+    // { id: 6, name: 'Pharmacy / Dispensing', code: 'PHARM-1', counter: 6, type: 'pharmacy' },
   ];
 
   // Always upsert station names so renames take effect without clearing data
@@ -119,7 +119,9 @@ function syncDefaultStations() {
       type = excluded.type,
       active = 1
   `);
+
   const count = db.prepare('SELECT COUNT(*) as count FROM stations').get().count;
+
   if (count === 0) {
     // Fresh DB — clear any stale data and insert cleanly
     db.transaction(() => {
@@ -127,8 +129,23 @@ function syncDefaultStations() {
       desiredStations.forEach(s => upsert.run(s.id, s.name, s.code, s.counter, s.type));
     })();
   } else {
-    // Existing DB — just update names/codes/counters in-place, preserve queue data
-    desiredStations.forEach(s => upsert.run(s.id, s.name, s.code, s.counter, s.type));
+    // Existing DB — update names/codes/counters in-place, preserve queue data.
+    // Codes are UNIQUE and SQLite checks that row by row, so if station codes
+    // moved between ids (e.g. DOC-1 from id 1 to id 2), updating one at a time
+    // would collide. Fix: park every code on a temporary value first, then upsert.
+    db.transaction(() => {
+      db.exec(`UPDATE stations SET code = '__tmp_' || id;`);
+
+      desiredStations.forEach(s => upsert.run(s.id, s.name, s.code, s.counter, s.type));
+
+      // Anything still on a temp code is an old station that is no longer in the list.
+      // Keep the row (so old tickets still link to it) but turn it off.
+      db.exec(`
+        UPDATE stations
+        SET code = 'OLD-' || id, active = 0
+        WHERE code LIKE '\\_\\_tmp\\_%' ESCAPE '\\';
+      `);
+    })();
   }
 }
 

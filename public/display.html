@@ -118,12 +118,14 @@
 
     <!-- RIGHT 5 COLS: 5 Station Counters Overview -->
     <div class="col-span-12 lg:col-span-5 flex flex-col min-h-0">
-      <div class="flex-1 min-h-0 bg-white rounded-2xl sm:rounded-3xl border border-gray-200 shadow-sm flex flex-col p-4 sm:p-6">
+      <div
+        class="flex-1 min-h-0 bg-white rounded-2xl sm:rounded-3xl border border-gray-200 shadow-sm flex flex-col p-4 sm:p-6">
         <div class="flex items-center justify-between mb-3 pb-2.5 sm:mb-4 sm:pb-3 border-b border-gray-100 shrink-0">
           <h2 class="text-xs sm:text-sm font-black text-gray-900 flex items-center gap-2 uppercase tracking-wider">
             <i class="fa-solid fa-hospital-user text-green-700"></i> Clinic Counters Status
           </h2>
-          <span id="activeCounterCount" class="text-[11px] sm:text-xs font-semibold text-gray-400">0 Active Counters</span>
+          <span id="activeCounterCount" class="text-[11px] sm:text-xs font-semibold text-gray-400">0 Active
+            Counters</span>
         </div>
 
         <div id="activeStationsList" class="flex-1 min-h-0 flex flex-col gap-2 sm:gap-2.5 overflow-y-auto pr-1">
@@ -201,7 +203,7 @@
       return String(name || '')
         .replace(/\bDra\./g, 'Doctora')
         .replace(/\bDr\./g, 'Doctor')
-        .replace(/Dhiet/gi, 'Die-yet');
+        .replace(/Dhieter/gi, 'Dee-ter');
     }
 
     function buildAnnouncementText(payload) {
