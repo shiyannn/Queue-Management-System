@@ -87,28 +87,17 @@
           </div>
         </div>
 
-        <!-- Quick Summary Stats Card -->
-        <div class="bg-gray-50 border border-gray-200 rounded-2xl p-5 sm:p-6 w-full lg:max-w-sm shadow-xs">
-          <div class="flex items-center justify-between mb-3 border-b border-gray-200 pb-2">
-            <p class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Today's OPD Queue</p>
-            <span class="mono text-[11px] text-gray-400 font-semibold" id="queueDateBadge">—</span>
-          </div>
-          <div class="space-y-3">
-            <div class="flex items-center justify-between pb-2.5 border-b border-gray-200">
-              <span class="text-xs sm:text-sm font-medium text-gray-600">Total Patients Called</span>
-              <span id="statTotalCalled" class="mono text-xl sm:text-2xl font-black text-gray-900">0</span>
-            </div>
-            <div class="flex items-center justify-between pb-2.5 border-b border-gray-200">
-              <span class="text-xs sm:text-sm font-medium text-gray-600">In Consultation Room</span>
-              <span id="statServing" class="mono text-xl sm:text-2xl font-black text-green-700">0</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-xs sm:text-sm font-medium text-gray-600">Active Stations</span>
-              <span id="statActiveCounters"
-                class="mono text-xs sm:text-sm font-bold text-green-800 bg-green-100 px-2.5 py-1 rounded-lg">—
-                Counters</span>
-            </div>
-          </div>
+        <!-- Hero image -->
+        <div class="hidden lg:flex items-center justify-center w-full lg:max-w-md select-none" aria-hidden="true">
+          <img src="/hero.jpg" alt="City Health Office Consultation Room" class="w-full h-auto max-h-[420px] object-contain">
+        </div>
+
+        <!-- Live stats kept for real-time JS, hidden from view -->
+        <div class="sr-only" aria-hidden="true">
+          <span id="statTotalCalled">0</span>
+          <span id="statServing">0</span>
+          <span id="statActiveCounters">0 Counters</span>
+          <span id="queueDateBadge">—</span>
         </div>
       </div>
     </section>
