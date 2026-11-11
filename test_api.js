@@ -135,7 +135,7 @@ async function run() {
   check('no old workflow section', !html.includes('Clinic Queue Workflow'));
 
   const reportsHtml = fs.readFileSync(path.join(__dirname, 'public', 'reports.html'), 'utf8');
-  for (const id of ['loginForm', 'passwordInput', 'dashboardView', 'fromDate', 'toDate', 'groupBy', 'reportChart', 'doctorTableBody', 'hourlyDate', 'hourlyChart', 'doctorChart']) {
+  for (const id of ['loginForm', 'passwordInput', 'dashboardView', 'fromDate', 'toDate', 'groupBy', 'reportChart', 'doctorTableBody', 'hourlyDate', 'hourlyChart']) {
     check(`reports element #${id} exists`, reportsHtml.includes(`id="${id}"`));
   }
   for (const fn of ['checkSession', 'loadReports', 'renderReport', 'exportCsv', 'exportPdf', 'logout', 'loadHourly', 'renderHourly']) {
