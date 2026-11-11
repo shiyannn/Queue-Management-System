@@ -42,6 +42,7 @@ const queueService = {
       JOIN stations s ON t.current_station_id = s.id
       WHERE t.current_station_id = ? 
         AND t.status IN ('CALLED', 'SERVING') 
+        AND t.archived = 0
         AND t.queue_date = ?
       ORDER BY t.called_at DESC
       LIMIT 1
@@ -67,7 +68,7 @@ const queueService = {
       // 2. First check if any transferred ticket is specifically waiting for this station
       const transferredTicket = db.prepare(`
         SELECT id FROM tickets 
-        WHERE current_station_id = ? AND status = 'WAITING' AND queue_date = ?
+        WHERE current_station_id = ? AND status = 'WAITING' AND archived = 0 AND queue_date = ?
         ORDER BY created_at ASC LIMIT 1
       `).get(stationId, today);
 
@@ -86,7 +87,7 @@ const queueService = {
       const lastSeqRow = db.prepare(`
         SELECT MAX(sequence_number) as max_seq 
         FROM tickets 
-        WHERE department = ? AND is_priority = ? AND queue_date = ?
+        WHERE department = ? AND is_priority = ? AND archived = 0 AND queue_date = ?
       `).get(dept, priorityFlag, today);
 
       const nextSeq = (lastSeqRow && lastSeqRow.max_seq ? lastSeqRow.max_seq : 0) + 1;
@@ -153,7 +154,7 @@ const queueService = {
 
       // Check if ticket already exists today (e.g. was SKIPPED or HOLD)
       const existing = db.prepare(`
-        SELECT id FROM tickets WHERE ticket_number IN (?, ?) AND queue_date = ? LIMIT 1
+        SELECT id FROM tickets WHERE ticket_number IN (?, ?) AND archived = 0 AND queue_date = ? LIMIT 1
       `).get(cleanNumber, normalizedNumber, today);
 
       if (existing) {
@@ -264,6 +265,7 @@ const queueService = {
       LEFT JOIN stations s ON t.current_station_id = s.id
       WHERE t.status = 'SKIPPED' 
         AND t.department = ?
+        AND t.archived = 0
         AND t.queue_date = ?
       ORDER BY t.called_at DESC
     `).all(department, today);
@@ -286,6 +288,7 @@ const queueService = {
       FROM stations s
       LEFT JOIN tickets t ON t.current_station_id = s.id 
         AND t.status IN ('CALLED', 'SERVING') 
+        AND t.archived = 0
         AND t.queue_date = ?
       WHERE s.active = 1
       ORDER BY s.counter_number ASC
@@ -295,11 +298,11 @@ const queueService = {
   // Next expected token numbers (regular + priority)
   getNextExpected() {
     const today = getTodayString();
-    const medMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'medical' AND is_priority = 0 AND queue_date = ?`).get(today);
-    const priorityMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'medical' AND is_priority = 1 AND queue_date = ?`).get(today);
-    const dentMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'dental' AND is_priority = 0 AND queue_date = ?`).get(today);
-    const dentPriorityMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'dental' AND is_priority = 1 AND queue_date = ?`).get(today);
-    const pharmMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'pharmacy' AND queue_date = ?`).get(today);
+    const medMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'medical' AND is_priority = 0 AND archived = 0 AND queue_date = ?`).get(today);
+    const priorityMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'medical' AND is_priority = 1 AND archived = 0 AND queue_date = ?`).get(today);
+    const dentMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'dental' AND is_priority = 0 AND archived = 0 AND queue_date = ?`).get(today);
+    const dentPriorityMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'dental' AND is_priority = 1 AND archived = 0 AND queue_date = ?`).get(today);
+    const pharmMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'pharmacy' AND archived = 0 AND queue_date = ?`).get(today);
 
     const nextMed = (medMax && medMax.m ? medMax.m : 0) + 1;
     const nextPriority = (priorityMax && priorityMax.m ? priorityMax.m : 0) + 1;
@@ -324,7 +327,7 @@ const queueService = {
 
     const transferred = db.prepare(`
       SELECT ticket_number FROM tickets 
-      WHERE current_station_id = ? AND status = 'WAITING' AND queue_date = ?
+      WHERE current_station_id = ? AND status = 'WAITING' AND archived = 0 AND queue_date = ?
       ORDER BY created_at ASC LIMIT 1
     `).get(stationId, today);
 
@@ -349,7 +352,7 @@ const queueService = {
       SELECT t.ticket_number, t.called_at, s.name as station_name, s.counter_number, s.type as station_type
       FROM tickets t
       JOIN stations s ON t.current_station_id = s.id
-      WHERE t.called_at IS NOT NULL AND t.queue_date = ?
+      WHERE t.called_at IS NOT NULL AND t.archived = 0 AND t.queue_date = ?
       ORDER BY t.called_at DESC
       LIMIT ?
     `).all(today, limit);
@@ -365,7 +368,7 @@ const queueService = {
         SUM(CASE WHEN status = 'SKIPPED' THEN 1 ELSE 0 END) as skipped_count,
         SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_count
       FROM tickets
-      WHERE queue_date = ?
+      WHERE archived = 0 AND queue_date = ?
     `).get(today);
 
     return {
@@ -395,6 +398,7 @@ const queueService = {
       FROM tickets t
       LEFT JOIN stations s ON t.current_station_id = s.id
       WHERE t.queue_date = ? 
+        AND t.archived = 0
         AND (t.current_station_id = ? OR t.id IN (SELECT ticket_id FROM ticket_logs WHERE station_id = ?))
       ORDER BY t.called_at DESC
       LIMIT ?
@@ -421,6 +425,7 @@ const queueService = {
       FROM tickets t
       LEFT JOIN stations s ON t.current_station_id = s.id
       WHERE t.queue_date = ? 
+        AND t.archived = 0
         AND (t.ticket_number = ? OR t.ticket_number LIKE ?)
       ORDER BY t.called_at DESC
       LIMIT 10
@@ -538,11 +543,12 @@ const queueService = {
     };
   },
 
-  // Reset today's queue back to 0/clean
+  // Reset today's queue back to token 1 while keeping tickets for reports.
+  // Tickets are archived (not deleted) so reports keep accumulating history;
+  // live queue views only see archived = 0, so the next call starts at R-1.
   resetTodayQueue() {
     const today = getTodayString();
-    db.prepare(`DELETE FROM ticket_logs WHERE ticket_id IN (SELECT id FROM tickets WHERE queue_date = ?)`).run(today);
-    db.prepare(`DELETE FROM tickets WHERE queue_date = ?`).run(today);
+    db.prepare(`UPDATE tickets SET archived = 1 WHERE queue_date = ? AND archived = 0`).run(today);
     return true;
   }
 };

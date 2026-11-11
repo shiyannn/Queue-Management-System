@@ -40,6 +40,7 @@ function initializeDatabase() {
       patient_name TEXT,
       notes TEXT,
       status TEXT NOT NULL DEFAULT 'CALLED', -- 'CALLED', 'SERVING', 'HOLD', 'SKIPPED', 'COMPLETED'
+      archived INTEGER NOT NULL DEFAULT 0, -- 1 = kept for reports but cleared from the live queue
       queue_date TEXT NOT NULL, -- YYYY-MM-DD
       sequence_number INTEGER NOT NULL,
       created_at TEXT NOT NULL,
@@ -73,6 +74,12 @@ function initializeDatabase() {
   try {
     db.exec(`ALTER TABLE tickets ADD COLUMN is_priority INTEGER NOT NULL DEFAULT 0;`);
   } catch (e) { }
+  try {
+    db.exec(`ALTER TABLE tickets ADD COLUMN archived INTEGER NOT NULL DEFAULT 0;`);
+  } catch (e) { }
+
+  // Index created after the ALTER so older databases pick up the new column first.
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_tickets_archived ON tickets(archived);`);
 
   // Ensure default categories & stations are seeded
   syncDefaultCategories();

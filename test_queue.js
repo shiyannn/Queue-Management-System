@@ -141,6 +141,16 @@ function run() {
   check('board cleared after reset', queueService.getActiveDisplayBoard().every(s => s.ticket_number === null));
   check('lookup empty after reset', queueService.lookupTicket('R-1').length === 0);
 
+  const reportAfterReset = queueService.getReportSummary(today, today, 'day');
+  check('reports keep history after reset', reportAfterReset.totals.total === report.totals.total, `${reportAfterReset.totals.total} vs ${report.totals.total}`);
+  const hourlyAfterReset = queueService.getHourlyCounts(today);
+  check('hourly history kept after reset', hourlyAfterReset.total === hourly.total, `${hourlyAfterReset.total} vs ${hourly.total}`);
+
+  const afterReset = queueService.callNextToken(medA);
+  check('next call after reset -> R-1', afterReset.ticket_number === 'R-1', afterReset.ticket_number);
+  const reportAfterNewCall = queueService.getReportSummary(today, today, 'day');
+  check('reports add new calls after reset', reportAfterNewCall.totals.total === reportAfterReset.totals.total + 1, `${reportAfterNewCall.totals.total} vs ${reportAfterReset.totals.total + 1}`);
+
   console.log('\n================ SUMMARY ================');
   console.log(`PASSED: ${pass}`);
   console.log(`FAILED: ${fail}`);
