@@ -427,6 +427,117 @@ const queueService = {
     `).all(today, clean, `%${clean}%`);
   },
 
+  // Reports: hourly distribution of called tokens for one day (Asia/Manila hours)
+  getHourlyCounts(date) {
+    const rows = db.prepare(`
+      SELECT called_at FROM tickets
+      WHERE queue_date = ? AND called_at IS NOT NULL
+    `).all(date);
+
+    const hours = new Array(24).fill(0);
+    const fmt = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Manila',
+      hour: '2-digit',
+      hourCycle: 'h23'
+    });
+
+    for (const row of rows) {
+      const hour = Number(fmt.format(new Date(row.called_at)));
+      if (Number.isInteger(hour) && hour >= 0 && hour < 24) {
+        hours[hour] += 1;
+      }
+    }
+
+    return { date, total: rows.length, hours };
+  },
+
+  // Reports: grouped counts by priority/regular/status for a date range
+  getReportSummary(from, to, groupBy = 'day') {
+    const bucketExpr = groupBy === 'month'
+      ? "substr(queue_date, 1, 7)"
+      : (groupBy === 'week' ? "strftime('%Y-W%W', queue_date)" : 'queue_date');
+
+    const totalsRow = db.prepare(`
+      SELECT
+        COUNT(*) AS total,
+        SUM(CASE WHEN is_priority = 1 THEN 1 ELSE 0 END) AS priority,
+        SUM(CASE WHEN is_priority = 0 THEN 1 ELSE 0 END) AS regular,
+        SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed,
+        SUM(CASE WHEN status = 'SKIPPED' THEN 1 ELSE 0 END) AS skipped,
+        SUM(CASE WHEN status IN ('CALLED', 'SERVING') THEN 1 ELSE 0 END) AS serving
+      FROM tickets
+      WHERE queue_date BETWEEN ? AND ?
+    `).get(from, to);
+
+    const series = db.prepare(`
+      SELECT
+        ${bucketExpr} AS bucket,
+        COUNT(*) AS total,
+        SUM(CASE WHEN is_priority = 1 THEN 1 ELSE 0 END) AS priority,
+        SUM(CASE WHEN is_priority = 0 THEN 1 ELSE 0 END) AS regular,
+        SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed,
+        SUM(CASE WHEN status = 'SKIPPED' THEN 1 ELSE 0 END) AS skipped
+      FROM tickets
+      WHERE queue_date BETWEEN ? AND ?
+      GROUP BY bucket
+      ORDER BY bucket ASC
+    `).all(from, to);
+
+    // Per-doctor/station breakdown
+    const byStation = db.prepare(`
+      SELECT
+        s.id AS station_id,
+        s.name AS station_name,
+        s.counter_number,
+        s.type AS station_type,
+        COUNT(*) AS total,
+        SUM(CASE WHEN t.is_priority = 1 THEN 1 ELSE 0 END) AS priority,
+        SUM(CASE WHEN t.is_priority = 0 THEN 1 ELSE 0 END) AS regular,
+        SUM(CASE WHEN t.status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed,
+        SUM(CASE WHEN t.status = 'SKIPPED' THEN 1 ELSE 0 END) AS skipped
+      FROM tickets t
+      JOIN stations s ON t.current_station_id = s.id
+      WHERE t.queue_date BETWEEN ? AND ?
+      GROUP BY s.id
+      ORDER BY s.counter_number ASC
+    `).all(from, to);
+
+    const num = v => v || 0;
+
+    return {
+      from,
+      to,
+      groupBy,
+      totals: {
+        total: num(totalsRow.total),
+        priority: num(totalsRow.priority),
+        regular: num(totalsRow.regular),
+        completed: num(totalsRow.completed),
+        skipped: num(totalsRow.skipped),
+        serving: num(totalsRow.serving)
+      },
+      series: series.map(r => ({
+        bucket: r.bucket,
+        total: num(r.total),
+        priority: num(r.priority),
+        regular: num(r.regular),
+        completed: num(r.completed),
+        skipped: num(r.skipped)
+      })),
+      byStation: byStation.map(r => ({
+        stationId: r.station_id,
+        stationName: r.station_name,
+        counterNumber: r.counter_number,
+        stationType: r.station_type,
+        total: num(r.total),
+        priority: num(r.priority),
+        regular: num(r.regular),
+        completed: num(r.completed),
+        skipped: num(r.skipped)
+      }))
+    };
+  },
+
   // Reset today's queue back to 0/clean
   resetTodayQueue() {
     const today = getTodayString();

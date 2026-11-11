@@ -46,9 +46,13 @@
           <i class="fa-solid fa-tv text-xs"></i> <span class="hidden sm:inline">TV </span>Display
         </a>
         <a href="/staff" target="_blank"
-          class="text-xs sm:text-sm font-bold text-green-700 border-b-2 border-green-700 pb-0.5 flex items-center gap-1.5 sm:gap-2">
+          class="text-xs sm:text-sm font-semibold text-gray-600 hover:text-green-700 transition-colors flex items-center gap-1.5 sm:gap-2">
           <i class="fa-solid fa-user-doctor text-xs"></i> <span class="hidden sm:inline">Doctor &amp; Staff
           </span>Terminal
+        </a>
+        <a href="/reports"
+          class="text-xs sm:text-sm font-semibold text-gray-600 hover:text-green-700 transition-colors flex items-center gap-1.5 sm:gap-2">
+          <i class="fa-solid fa-chart-column text-xs"></i> <span class="hidden sm:inline">Reports</span>
         </a>
         <div id="liveTime"
           class="mono text-xs text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg font-bold border border-gray-200 hidden md:block">
@@ -60,52 +64,48 @@
 
   <!-- Hero Section -->
   <main class="flex-1">
-    <section class="max-w-7xl mx-auto px-4 py-8 sm:px-6 sm:py-12 border-b border-gray-100">
+    <section class="max-w-7xl mx-auto px-4 py-8 sm:px-6 sm:py-10 border-b border-gray-100">
       <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 sm:gap-8">
         <div class="max-w-2xl">
-          <p class="text-xs font-bold text-green-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-green-600 inline-block"></span>
-            City Health Office II — City of Naga
-          </p>
-          <h1
-            class="text-2xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight tracking-tight mb-3 sm:mb-4">
-            Patient Queue Management System
+          <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 leading-tight tracking-tight mb-3">
+            Outpatient Department Queue
           </h1>
-          <p class="text-sm sm:text-base text-gray-500 leading-relaxed">
-            Centralized queue coordination for General Medical Consultation, Dental Clinic, and Pharmacy Dispensing
-            services.
-            Enables orderly First-In, First-Out (FIFO) patient flow with real-time audio-visual notifications on waiting
-            area displays.
+          <p class="text-xs sm:text-sm text-gray-600 font-medium leading-relaxed mb-6">
+            Real-time queue coordination for General Medical Consultations, Dental Clinic, and Pharmacy dispensing.
           </p>
 
           <!-- Launch Action Buttons -->
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mt-6 sm:mt-8">
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <a href="/staff" target="_blank"
-              class="inline-flex items-center justify-center gap-2.5 px-5 py-3.5 bg-green-700 hover:bg-green-800 active:bg-green-900 text-white text-sm font-bold rounded-xl transition-all shadow-sm hover:shadow-md active:scale-95 text-center">
-              <i class="fa-solid fa-user-doctor"></i> Open Doctor &amp; Staff Terminal
+              class="inline-flex items-center justify-center gap-2.5 px-5 py-3.5 bg-green-700 hover:bg-green-800 active:bg-green-900 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-sm hover:shadow active:scale-95 text-center">
+              <i class="fa-solid fa-user-doctor"></i> Doctor &amp; Staff Terminal
             </a>
             <a href="/display" target="_blank"
-              class="inline-flex items-center justify-center gap-2.5 px-5 py-3.5 border border-gray-300 text-gray-700 hover:border-green-700 hover:text-green-700 text-sm font-bold rounded-xl transition-all active:scale-95 text-center">
-              <i class="fa-solid fa-tv"></i> Open Waiting Area TV
+              class="inline-flex items-center justify-center gap-2.5 px-5 py-3.5 border border-gray-300 text-gray-700 hover:border-green-700 hover:text-green-700 bg-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-xs active:scale-95 text-center">
+              <i class="fa-solid fa-tv"></i> Waiting Area TV Display
             </a>
           </div>
         </div>
 
         <!-- Quick Summary Stats Card -->
-        <div class="bg-gray-50 border border-gray-200 rounded-2xl p-5 sm:p-7 w-full lg:max-w-sm shadow-xs">
-          <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 sm:mb-4">Today's Queue Summary</p>
-          <div class="space-y-3 sm:space-y-4">
-            <div class="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-gray-200">
+        <div class="bg-gray-50 border border-gray-200 rounded-2xl p-5 sm:p-6 w-full lg:max-w-sm shadow-xs">
+          <div class="flex items-center justify-between mb-3 border-b border-gray-200 pb-2">
+            <p class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Today's OPD Queue</p>
+            <span class="mono text-[11px] text-gray-400 font-semibold" id="queueDateBadge">—</span>
+          </div>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between pb-2.5 border-b border-gray-200">
               <span class="text-xs sm:text-sm font-medium text-gray-600">Total Patients Called</span>
               <span id="statTotalCalled" class="mono text-xl sm:text-2xl font-black text-gray-900">0</span>
             </div>
-            <div class="flex items-center justify-between pb-2.5 sm:pb-3 border-b border-gray-200">
-              <span class="text-xs sm:text-sm font-medium text-gray-600">Currently in Room</span>
+            <div class="flex items-center justify-between pb-2.5 border-b border-gray-200">
+              <span class="text-xs sm:text-sm font-medium text-gray-600">In Consultation Room</span>
               <span id="statServing" class="mono text-xl sm:text-2xl font-black text-green-700">0</span>
             </div>
             <div class="flex items-center justify-between">
-              <span class="text-xs sm:text-sm font-medium text-gray-600">Active Counters</span>
-              <span class="mono text-xs sm:text-sm font-bold text-green-800 bg-green-100 px-2.5 py-1 rounded-lg">5
+              <span class="text-xs sm:text-sm font-medium text-gray-600">Active Stations</span>
+              <span id="statActiveCounters"
+                class="mono text-xs sm:text-sm font-bold text-green-800 bg-green-100 px-2.5 py-1 rounded-lg">—
                 Counters</span>
             </div>
           </div>
@@ -116,13 +116,10 @@
     <!-- Token & Doctor Lookup / Station Finder -->
     <section class="max-w-7xl mx-auto px-4 py-8 sm:px-6 border-b border-gray-100 bg-gray-50/60">
       <div class="max-w-2xl mx-auto text-center">
-        <p
-          class="text-xs font-bold text-green-700 uppercase tracking-wider mb-1 flex items-center justify-center gap-1.5">
-          <i class="fa-solid fa-magnifying-glass"></i> Patient Token &amp; Doctor Lookup
-        </p>
-        <h2 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight mb-2">Find Assigned Room or Doctor</h2>
+        <h2 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight mb-1.5">Patient Token &amp; Room Finder
+        </h2>
         <p class="text-xs sm:text-sm text-gray-500 mb-5">
-          Di maalala kung sinong doktor ang tumawag sa iyo? Type your token number below to check your counter and room.
+          Enter your pre-printed physical token number to check your assigned doctor and room status.
         </p>
 
         <!-- Search Input -->
@@ -130,7 +127,7 @@
           <div class="relative flex-1">
             <span
               class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 font-bold mono">#</span>
-            <input type="text" id="tokenSearchInput" placeholder="Enter token number (e.g. 5, D-2, Rx-1)"
+            <input type="text" id="tokenSearchInput" placeholder="e.g. 5, P-2, D-1, Rx-3"
               class="w-full pl-8 pr-4 py-3 rounded-xl border border-gray-300 bg-white mono text-sm font-bold uppercase focus:outline-none focus:ring-2 focus:ring-green-600 shadow-xs"
               onkeypress="if(event.key === 'Enter') lookupToken();" />
           </div>
@@ -145,68 +142,24 @@
       </div>
     </section>
 
-    <!-- Real-Time Counter Status Section -->
-    <section class="max-w-7xl mx-auto px-4 py-8 sm:px-6 sm:py-10 border-b border-gray-100">
-      <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
+    <!-- Active Consultation Counters -->
+    <section class="max-w-7xl mx-auto px-4 py-8 pb-14 sm:px-6">
+      <div class="flex items-center justify-between mb-4">
         <div>
-          <p class="text-xs font-bold text-green-700 uppercase tracking-wider mb-1">Live Counter Activity</p>
-          <h2 class="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Active Consultation Counters</h2>
-          <p class="text-xs sm:text-sm text-gray-500 mt-0.5">Real-time status for 3 Medical Doctors, 1 Dental Clinic,
-            and 1 Pharmacy</p>
+          <h2 class="text-lg sm:text-xl font-black text-gray-900 tracking-tight">Active Consultation Rooms</h2>
+          <p class="text-xs text-gray-500 mt-0.5">Assigned doctors and current token in session</p>
         </div>
-
-        <button onclick="resetDailyQueue()"
-          class="text-xs font-semibold text-gray-500 hover:text-red-700 border border-gray-200 hover:border-red-300 bg-white px-3.5 py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs">
-          <i class="fa-solid fa-rotate-left text-[10px]"></i> Reset Daily Queue
-        </button>
+        <div class="flex items-center gap-3 shrink-0">
+          <button onclick="resetDailyQueue()" title="Admin function: Reset today's queue back to token 1"
+            class="text-[11px] font-semibold text-gray-500 hover:text-red-700 bg-gray-100 hover:bg-red-50 border border-gray-200 hover:border-red-200 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer">
+            <i class="fa-solid fa-lock text-[10px]"></i>
+            <span class="hidden sm:inline">Reset Queue</span>
+          </button>
+        </div>
       </div>
-
-      <!-- Counter Cards Grid -->
-      <div id="stationsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        <!-- Rendered dynamically, populated with defaults immediately -->
-      </div>
+      <div id="stationsList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"></div>
     </section>
 
-    <!-- Clinic Workflow Section -->
-    <section class="max-w-7xl mx-auto px-6 py-12">
-      <p class="text-xs font-bold text-green-700 uppercase tracking-wider mb-1">Standard Operating Procedure</p>
-      <h2 class="text-2xl font-black text-gray-900 mb-2 tracking-tight">Clinic Queue Workflow</h2>
-      <p class="text-sm text-gray-500 mb-8 max-w-xl">
-        Designed for orderly and efficient patient service across all consulting rooms.
-      </p>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- Step 1 -->
-        <div class="border border-gray-200 rounded-2xl p-6 bg-white hover:border-gray-300 transition-all">
-          <p class="text-xs font-bold text-green-700 mb-3">Phase 01</p>
-          <h3 class="text-base font-bold text-gray-900 mb-2">Patient Arrival &amp; Triage</h3>
-          <p class="text-xs text-gray-500 leading-relaxed">
-            Patients are greeted at reception or triage upon arrival. Staff issues their designated queue number based
-            on medical or dental service requirements.
-          </p>
-        </div>
-
-        <!-- Step 2 -->
-        <div class="border border-gray-200 rounded-2xl p-6 bg-white hover:border-gray-300 transition-all">
-          <p class="text-xs font-bold text-green-700 mb-3">Phase 02</p>
-          <h3 class="text-base font-bold text-gray-900 mb-2">Waiting Area Audio-Visual Call</h3>
-          <p class="text-xs text-gray-500 leading-relaxed">
-            Patients wait comfortably in the designated lobby area. The public TV monitor automatically sounds a chime
-            and announces the number when a doctor is ready.
-          </p>
-        </div>
-
-        <!-- Step 3 -->
-        <div class="border border-gray-200 rounded-2xl p-6 bg-white hover:border-gray-300 transition-all">
-          <p class="text-xs font-bold text-green-700 mb-3">Phase 03</p>
-          <h3 class="text-base font-bold text-gray-900 mb-2">Doctor Consultation &amp; Routing</h3>
-          <p class="text-xs text-gray-500 leading-relaxed">
-            Physicians manage patient flow directly from their room terminal. Counters advance sequentially, with
-            options to recall, hold, or transfer patients.
-          </p>
-        </div>
-      </div>
-    </section>
   </main>
 
   <!-- Clean Footer -->
@@ -214,23 +167,12 @@
     <div
       class="max-w-7xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-400">
       <p>City Health Office II (CHO II)</p>
-      <!--<p>Local Area Network (LAN) Synchronized • High Availability</p> -->
       <p>© shiyann</p>
     </div>
   </footer>
 
   <script>
     const socket = io();
-
-    // Default static stations so cards NEVER show empty or stuck in loading
-    const defaultStations = [
-      { counter_number: 1, station_name: 'Dra. Mennie', station_type: 'medical', ticket_number: null },
-      { counter_number: 2, station_name: 'Dr. Perry', station_type: 'medical', ticket_number: null },
-      { counter_number: 3, station_name: 'Dr. Dhiet', station_type: 'medical', ticket_number: null },
-      { counter_number: 4, station_name: 'Dr. Cabral', station_type: 'medical', ticket_number: null },
-      { counter_number: 5, station_name: 'Dra. Yvonne', station_type: 'dental', ticket_number: null },
-      { counter_number: 6, station_name: 'Pharmacy / Dispensing', station_type: 'pharmacy', ticket_number: null }
-    ];
 
     function updateClock() {
       const now = new Date();
@@ -240,33 +182,51 @@
     setInterval(updateClock, 1000);
     updateClock();
 
+    function updateStats(data) {
+      if (!data) return;
+      if (data.stats) {
+        document.getElementById('statTotalCalled').textContent = data.stats.totalCalled || 0;
+        document.getElementById('statServing').textContent = data.stats.serving || 0;
+        if (data.stats.today) {
+          const dateEl = document.getElementById('queueDateBadge');
+          if (dateEl) {
+            const d = new Date(data.stats.today + 'T00:00:00');
+            dateEl.textContent = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          }
+        }
+      }
+      if (data.displayBoard) {
+        document.getElementById('statActiveCounters').textContent = `${data.displayBoard.length} Counters`;
+      }
+    }
+
     function renderStations(board) {
-      const stations = (board && board.length > 0) ? board : defaultStations;
       const container = document.getElementById('stationsList');
       if (!container) return;
 
-      container.innerHTML = stations.map(st => `
-        <div class="border ${st.ticket_number ? 'border-green-300 bg-green-50/50 shadow-xs' : 'border-gray-200 bg-white'} rounded-2xl p-5 transition-all flex flex-col justify-between">
-          <div>
-            <div class="flex items-center justify-between mb-4">
-              <span class="text-xs font-bold text-green-700 uppercase tracking-wide">Counter ${st.counter_number}</span>
-              <span class="text-xs font-semibold ${st.ticket_number ? 'text-green-700' : 'text-gray-400'}">
-                ${st.ticket_number ? '● Serving' : '○ Ready'}
-              </span>
+      if (!board || board.length === 0) {
+        container.innerHTML = '<p class="col-span-full text-center text-xs text-gray-400 py-4">No active counters at the moment.</p>';
+        return;
+      }
+
+      container.innerHTML = board.map(st => {
+        const serving = !!st.ticket_number;
+        return `
+          <div class="border ${serving ? 'border-green-300 bg-green-50/40' : 'border-gray-200 bg-white'} rounded-xl p-3.5 transition-all">
+            <div class="flex items-center justify-between mb-2.5">
+              <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Counter ${st.counter_number}</span>
+              <span class="w-1.5 h-1.5 rounded-full ${serving ? 'bg-green-600' : 'bg-gray-300'}"></span>
             </div>
-            <p class="text-sm font-extrabold text-gray-900 leading-snug mb-1">${st.station_name}</p>
-            <p class="text-xs text-gray-400 mb-6">${st.station_type === 'dental' ? 'Dental Room' : (st.station_type === 'pharmacy' ? 'Medicine Dispensing' : 'Consultation Room')}</p>
+            <p class="text-sm font-bold text-gray-900 leading-snug truncate">${st.station_name}</p>
+            <div class="mt-3 pt-2.5 border-t border-gray-100 flex items-center justify-between">
+              <span class="text-[10px] font-semibold text-gray-400">${serving ? 'Now serving' : 'Ready'}</span>
+              ${serving
+            ? `<span class="mono text-base font-black text-green-800">#${st.ticket_number}</span>`
+            : `<span class="text-[11px] font-semibold text-gray-400 italic">—</span>`}
+            </div>
           </div>
-          
-          <div class="pt-4 border-t border-gray-100 flex items-center justify-between">
-            <span class="text-xs text-gray-400 font-medium">Active Token:</span>
-            ${st.ticket_number
-          ? `<span class="mono text-xl font-black text-green-800 bg-white border border-green-200 px-3 py-1 rounded-xl shadow-xs">#${st.ticket_number}</span>`
-          : `<span class="text-xs text-gray-400 font-semibold italic">Ready</span>`
-        }
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     async function loadData() {
@@ -274,21 +234,38 @@
         const res = await fetch('/api/display');
         const data = await res.json();
         if (data.success && data.data) {
+          updateStats(data.data);
           renderStations(data.data.displayBoard);
-          if (data.data.stats) {
-            document.getElementById('statTotalCalled').textContent = data.data.stats.totalCalled || 0;
-            document.getElementById('statServing').textContent = data.data.stats.serving || 0;
-          }
         }
       } catch (e) {
-        renderStations(defaultStations);
+        // Keep the last known values if the network drops
       }
     }
 
     async function resetDailyQueue() {
       if (!confirm("Are you sure you want to reset today's queue numbers back to token 1?")) return;
       try {
-        await fetch('/api/reset-today', { method: 'POST' });
+        let res = await fetch('/api/reset-today', { method: 'POST' });
+
+        if (res.status === 401) {
+          const pw = prompt('Admin password required to reset the queue:');
+          if (!pw) return;
+          const login = await fetch('/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: pw })
+          });
+          if (!login.ok) {
+            alert('Incorrect admin password');
+            return;
+          }
+          res = await fetch('/api/reset-today', { method: 'POST' });
+        }
+
+        if (!res.ok) {
+          alert('Reset failed. Please try again.');
+          return;
+        }
         loadData();
       } catch (e) {
         alert('Network error while resetting');
@@ -349,17 +326,13 @@
       }
     }
 
-    // Initialize with defaults immediately
-    renderStations(defaultStations);
+    // Initialize immediately
     loadData();
 
     socket.on('queue:updated', (data) => {
+      updateStats(data);
       if (data && data.displayBoard) {
         renderStations(data.displayBoard);
-      }
-      if (data && data.stats) {
-        document.getElementById('statTotalCalled').textContent = data.stats.totalCalled || 0;
-        document.getElementById('statServing').textContent = data.stats.serving || 0;
       }
     });
   </script>

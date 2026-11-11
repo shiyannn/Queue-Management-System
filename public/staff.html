@@ -71,6 +71,11 @@
         <div class="col-span-full text-center py-12 text-gray-400 text-sm">Loading clinic counters...</div>
       </div>
     </main>
+
+    <footer class="border-t border-gray-100 bg-white px-4 py-3 sm:px-6 flex items-center justify-between text-[11px] text-gray-400">
+      <span>City Health Office II (CHO II)</span>
+      <span>© shiyann</span>
+    </footer>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════
@@ -320,6 +325,11 @@
 
       </div>
     </main>
+
+    <footer class="border-t border-gray-100 bg-white px-4 py-3 sm:px-6 flex items-center justify-between text-[11px] text-gray-400">
+      <span>City Health Office II (CHO II)</span>
+      <span>© shiyann</span>
+    </footer>
   </div>
 
   <!-- Transfer Modal -->
@@ -719,10 +729,12 @@
 
     socket.on('queue:updated', () => {
       if (currentStationId) updateTerminalView();
+
     });
 
     init();
   </script>
+
 
 </body>
 

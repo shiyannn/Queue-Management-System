@@ -1,7 +1,7 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-const dbPath = path.join(__dirname, 'cho_queue.db');
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'cho_queue.db');
 const db = new Database(dbPath);
 
 // Enable foreign keys and WAL mode for high concurrency

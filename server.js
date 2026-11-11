@@ -1,5 +1,6 @@
 const express = require('express');
 const http = require('http');
+const crypto = require('crypto');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
@@ -17,6 +18,58 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// ---- Simple admin session (protects reports + queue reset) ----
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'shiyanpogi';
+const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const adminSessions = new Map();
+
+function parseCookies(req) {
+  const raw = req.headers.cookie || '';
+  const cookies = {};
+  raw.split(';').forEach(part => {
+    const idx = part.indexOf('=');
+    if (idx === -1) return;
+    cookies[part.slice(0, idx).trim()] = decodeURIComponent(part.slice(idx + 1).trim());
+  });
+  return cookies;
+}
+
+function getAdminToken(req) {
+  const token = parseCookies(req).cho_admin;
+  if (!token) return null;
+  const expiresAt = adminSessions.get(token);
+  if (!expiresAt) return null;
+  if (expiresAt < Date.now()) {
+    adminSessions.delete(token);
+    return null;
+  }
+  return token;
+}
+
+function requireAdmin(req, res, next) {
+  if (!getAdminToken(req)) {
+    return res.status(401).json({ success: false, error: 'Admin login required' });
+  }
+  next();
+}
+
+function passwordMatches(candidate) {
+  const given = crypto.createHash('sha256').update(String(candidate || '')).digest();
+  const expected = crypto.createHash('sha256').update(String(ADMIN_PASSWORD)).digest();
+  return crypto.timingSafeEqual(given, expected);
+}
+
+function addDays(dateStr, days) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
+
+function isValidDate(value) {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
 
 // Helper: Broadcast state change to all screens and terminals
 function notifyQueueUpdate(extraEvent = null, extraPayload = null) {
@@ -215,8 +268,8 @@ app.get('/api/display', (req, res) => {
   }
 });
 
-// 10. Reset Today's Queue (Morning start)
-app.post('/api/reset-today', (req, res) => {
+// 10. Reset Today's Queue (Morning start) — admin only
+app.post('/api/reset-today', requireAdmin, (req, res) => {
   try {
     queueService.resetTodayQueue();
     notifyQueueUpdate('queue:reset', null);
@@ -226,7 +279,67 @@ app.post('/api/reset-today', (req, res) => {
   }
 });
 
+// ================= ADMIN AUTH =================
+app.post('/api/admin/login', (req, res) => {
+  try {
+    if (!passwordMatches(req.body && req.body.password)) {
+      return res.status(401).json({ success: false, error: 'Incorrect password' });
+    }
+    const token = crypto.randomBytes(24).toString('hex');
+    adminSessions.set(token, Date.now() + ADMIN_SESSION_TTL_MS);
+    res.setHeader('Set-Cookie', `cho_admin=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${Math.floor(ADMIN_SESSION_TTL_MS / 1000)}`);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/admin/logout', (req, res) => {
+  const token = getAdminToken(req);
+  if (token) adminSessions.delete(token);
+  res.setHeader('Set-Cookie', 'cho_admin=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0');
+  res.json({ success: true });
+});
+
+app.get('/api/admin/session', (req, res) => {
+  res.json({ success: true, authenticated: Boolean(getAdminToken(req)) });
+});
+
+// ================= REPORTS =================
+app.get('/api/reports/summary', requireAdmin, (req, res) => {
+  try {
+    const today = queueService.getTodayString();
+    const to = isValidDate(req.query.to) ? req.query.to : today;
+    const from = isValidDate(req.query.from) ? req.query.from : addDays(to, -6);
+    const groupBy = ['day', 'week', 'month'].includes(req.query.groupBy) ? req.query.groupBy : 'day';
+
+    if (from > to) {
+      return res.status(400).json({ success: false, error: '`from` must be on or before `to`' });
+    }
+
+    const summary = queueService.getReportSummary(from, to, groupBy);
+    res.json({ success: true, data: summary });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/reports/hourly', requireAdmin, (req, res) => {
+  try {
+    const today = queueService.getTodayString();
+    const date = isValidDate(req.query.date) ? req.query.date : today;
+
+    const data = queueService.getHourlyCounts(date);
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Route Shortcuts
+app.get('/reports', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'reports.html'));
+});
 app.get('/display', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'display.html'));
 });
@@ -250,6 +363,10 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`🏥 CHO Pre-Printed Clinic Queue System is running!`);
   console.log(`   - Display (Waiting Room TV):  http://localhost:${PORT}/display`);
   console.log(`   - Staff Terminal (Doctors):   http://localhost:${PORT}/staff`);
+  console.log(`   - Reports Dashboard (admin):  http://localhost:${PORT}/reports`);
   console.log(`   - Control Hub:                http://localhost:${PORT}/`);
   console.log(`====================================================`);
+  if (!process.env.ADMIN_PASSWORD) {
+    console.log('⚠️  ADMIN_PASSWORD not set — using default "shiyanpogi". Set it in the environment for production.');
+  }
 });

@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>City Health Office II — Naga | Reports Dashboard</title>
+  <link rel="icon" type="image/jpeg" href="/logo.jpg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="border-b border-gray-200 bg-white sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 sm:py-4 flex justify-between items-center gap-3">
+      <a href="/" class="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+        <img src="/logo.jpg" alt="City Health Office Logo"
+          class="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover border border-gray-200 shrink-0">
+        <div class="min-w-0">
+          <div class="text-xs sm:text-base font-extrabold text-gray-900 leading-tight truncate">City Health Office II —
+            Naga</div>
+          <div class="text-[10px] sm:text-xs text-gray-500 font-medium truncate">Reports Dashboard</div>
+        </div>
+      </a>
+      <div class="flex items-center gap-3 sm:gap-5 shrink-0">
+        <a href="/"
+          class="text-xs sm:text-sm font-semibold text-gray-600 hover:text-green-700 transition-colors flex items-center gap-1.5">
+          <i class="fa-solid fa-house text-xs"></i> <span class="hidden sm:inline">Home</span>
+        </a>
+        <button id="logoutBtn" onclick="logout()"
+          class="hidden text-xs sm:text-sm font-bold text-red-600 hover:text-white bg-white hover:bg-red-600 border border-red-300 hover:border-red-600 px-3 py-1.5 rounded-lg transition-colors cursor-pointer">
+          <i class="fa-solid fa-right-from-bracket text-xs"></i> <span class="hidden sm:inline">Log out</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1">
+    <!-- Login -->
+    <section id="loginView" class="hidden max-w-7xl mx-auto px-4 py-16 sm:px-6">
+      <div class="max-w-sm mx-auto bg-white border border-gray-200 rounded-2xl p-7 shadow-sm">
+        <div class="text-center mb-6">
+          <div
+            class="w-12 h-12 mx-auto rounded-full bg-green-100 text-green-700 flex items-center justify-center mb-3">
+            <i class="fa-solid fa-lock"></i>
+          </div>
+          <h1 class="text-xl font-black text-gray-900 tracking-tight">Admin Access</h1>
+          <p class="text-xs text-gray-500 mt-1">Sign in to view patient queue reports.</p>
+        </div>
+        <form id="loginForm" class="space-y-3">
+          <input type="password" id="passwordInput" placeholder="Admin password" autocomplete="current-password"
+            class="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-green-600">
+          <button type="submit"
+            class="w-full py-3 bg-green-700 hover:bg-green-800 active:bg-green-900 text-white text-sm font-bold rounded-xl transition-all cursor-pointer">
+            Sign in
+          </button>
+          <p id="loginError" class="hidden text-xs font-semibold text-red-600 text-center"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dashboardView" class="hidden max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
+      <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-6">
+        <div>
+          <h1 class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">Queue Reports</h1>
+          <p class="text-xs sm:text-sm text-gray-500 mt-1">Priority vs regular patients called, per day, week or month.
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-end gap-2">
+          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">From
+            <input type="date" id="fromDate"
+              class="block mt-1 px-3 py-2 rounded-lg border border-gray-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-green-600">
+          </label>
+          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">To
+            <input type="date" id="toDate"
+              class="block mt-1 px-3 py-2 rounded-lg border border-gray-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-green-600">
+          </label>
+          <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Group by
+            <select id="groupBy"
+              class="block mt-1 px-3 py-2 rounded-lg border border-gray-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-green-600">
+              <option value="day">Day</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+            </select>
+          </label>
+          <button onclick="loadReports()"
+            class="px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer">
+            Apply
+          </button>
+          <button onclick="exportCsv()"
+            class="px-4 py-2 bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 text-xs font-bold rounded-lg transition-colors cursor-pointer">
+            <i class="fa-solid fa-file-csv text-xs"></i> Export CSV
+          </button>
+          <button onclick="exportPdf()" id="exportPdfBtn"
+            class="px-4 py-2 bg-red-700 hover:bg-red-800 active:bg-red-900 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer">
+            <i class="fa-solid fa-file-pdf text-xs"></i> Download PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+        <div class="bg-white border border-gray-200 rounded-2xl p-4">
+          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Called</p>
+          <p id="kpiTotal" class="mono text-2xl font-black text-gray-900 mt-1">0</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-4">
+          <p class="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Priority</p>
+          <p id="kpiPriority" class="mono text-2xl font-black text-amber-700 mt-1">0</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-4">
+          <p class="text-[10px] font-bold text-green-700 uppercase tracking-wider">Regular</p>
+          <p id="kpiRegular" class="mono text-2xl font-black text-green-800 mt-1">0</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-4">
+          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Completed</p>
+          <p id="kpiCompleted" class="mono text-2xl font-black text-gray-900 mt-1">0</p>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-2xl p-4">
+          <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Skipped</p>
+          <p id="kpiSkipped" class="mono text-2xl font-black text-gray-900 mt-1">0</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        <!-- Chart -->
+        <div class="xl:col-span-2 bg-white border border-gray-200 rounded-2xl p-5">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm font-black text-gray-900 uppercase tracking-wider">Priority vs Regular</h2>
+            <span class="text-[10px] font-semibold text-gray-400" id="chartRange">—</span>
+          </div>
+          <div class="h-72">
+            <canvas id="reportChart"></canvas>
+          </div>
+          <p id="chartEmpty" class="hidden text-center text-xs text-gray-400 py-10">No queue data for this range.</p>
+        </div>
+
+        <!-- Per-Doctor table -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-5">
+          <h2 class="text-sm font-black text-gray-900 uppercase tracking-wider mb-3">By Doctor / Station</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="text-gray-400 text-left border-b border-gray-100">
+                  <th class="py-2 font-bold uppercase tracking-wider">Doctor</th>
+                  <th class="py-2 font-bold uppercase tracking-wider text-right">Total</th>
+                  <th class="py-2 font-bold uppercase tracking-wider text-right">Prio</th>
+                  <th class="py-2 font-bold uppercase tracking-wider text-right">Reg</th>
+                  <th class="py-2 font-bold uppercase tracking-wider text-right">Done</th>
+                  <th class="py-2 font-bold uppercase tracking-wider text-right">Skip</th>
+                </tr>
+              </thead>
+              <tbody id="doctorTableBody" class="divide-y divide-gray-100"></tbody>
+            </table>
+            <p id="doctorEmpty" class="hidden text-center text-xs text-gray-400 py-6">No data.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hourly patient flow (single day) -->
+      <div class="mt-5 bg-white border border-gray-200 rounded-2xl p-5">
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-3 mb-4">
+          <div>
+            <h2 class="text-sm font-black text-gray-900 uppercase tracking-wider">Hourly Patient Flow</h2>
+            <p class="text-xs text-gray-500 mt-1">Share of the day's tokens called per hour (0–100%).</p>
+          </div>
+          <div class="flex flex-wrap items-end gap-2">
+            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Day
+              <input type="date" id="hourlyDate"
+                class="block mt-1 px-3 py-2 rounded-lg border border-gray-300 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-green-600">
+            </label>
+            <button onclick="loadHourly()"
+              class="px-4 py-2 bg-green-700 hover:bg-green-800 text-white text-xs font-bold rounded-lg transition-colors cursor-pointer">
+              Show
+            </button>
+            <span id="hourlyTotal" class="text-[11px] font-semibold text-gray-500 pb-2"></span>
+          </div>
+        </div>
+        <div class="h-72">
+          <canvas id="hourlyChart"></canvas>
+        </div>
+        <p id="hourlyEmpty" class="hidden text-center text-xs text-gray-400 py-10">No calls recorded for this day.</p>
+      </div>
+
+      <!-- Per-Doctor Breakdown Chart -->
+      <div class="mt-5 bg-white border border-gray-200 rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-black text-gray-900 uppercase tracking-wider">Patients Per Doctor</h2>
+          <span class="text-[10px] font-semibold text-gray-400" id="doctorChartRange">—</span>
+        </div>
+        <div class="h-72">
+          <canvas id="doctorChart"></canvas>
+        </div>
+        <p id="doctorChartEmpty" class="hidden text-center text-xs text-gray-400 py-10">No station data for this range.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-gray-100 bg-white">
+    <div
+      class="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
+      <p>City Health Office II (CHO II)</p>
+      <p>© shiyann</p>
+    </div>
+  </footer>
+
+  <script>
+    let reportChart = null;
+    let hourlyChart = null;
+    let doctorChart = null;
+    let lastReport = null;
+
+    function todayLocal() {
+      return new Intl.DateTimeFormat('en-CA').format(new Date());
+    }
+
+    function shiftDays(dateStr, days) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, d));
+      dt.setUTCDate(dt.getUTCDate() + days);
+      return dt.toISOString().slice(0, 10);
+    }
+
+    function showLogin() {
+      document.getElementById('loginView').classList.remove('hidden');
+      document.getElementById('dashboardView').classList.add('hidden');
+      document.getElementById('logoutBtn').classList.add('hidden');
+    }
+
+    function showDashboard() {
+      document.getElementById('loginView').classList.add('hidden');
+      document.getElementById('dashboardView').classList.remove('hidden');
+      document.getElementById('logoutBtn').classList.remove('hidden');
+    }
+
+    async function checkSession() {
+      try {
+        const res = await fetch('/api/admin/session');
+        const json = await res.json();
+        if (json.authenticated) {
+          showDashboard();
+          await loadReports();
+          await loadHourly();
+        } else {
+          showLogin();
+        }
+      } catch (e) {
+        showLogin();
+      }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('loginError');
+      errEl.classList.add('hidden');
+      const password = document.getElementById('passwordInput').value;
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        if (!res.ok) {
+          errEl.textContent = 'Incorrect password. Please try again.';
+          errEl.classList.remove('hidden');
+          return;
+        }
+        document.getElementById('passwordInput').value = '';
+        showDashboard();
+        await loadReports();
+        await loadHourly();
+      } catch (err) {
+        errEl.textContent = 'Connection error. Please try again.';
+        errEl.classList.remove('hidden');
+      }
+    });
+
+    async function logout() {
+      try { await fetch('/api/admin/logout', { method: 'POST' }); } catch (e) { }
+      showLogin();
+    }
+
+    function setDefaultDates() {
+      const to = todayLocal();
+      const from = shiftDays(to, -6);
+      document.getElementById('toDate').value = document.getElementById('toDate').value || to;
+      document.getElementById('fromDate').value = document.getElementById('fromDate').value || from;
+      document.getElementById('hourlyDate').value = document.getElementById('hourlyDate').value || to;
+    }
+
+    async function loadReports() {
+      const from = document.getElementById('fromDate').value;
+      const to = document.getElementById('toDate').value;
+      const groupBy = document.getElementById('groupBy').value;
+
+      try {
+        const res = await fetch(`/api/reports/summary?from=${from}&to=${to}&groupBy=${groupBy}`);
+        if (res.status === 401) { showLogin(); return; }
+        const json = await res.json();
+        if (!json.success) return;
+
+        lastReport = json.data;
+        renderReport(json.data);
+      } catch (e) {
+        console.error('Failed to load reports', e);
+      }
+    }
+
+    async function loadHourly() {
+      const date = document.getElementById('hourlyDate').value;
+      if (!date) return;
+
+      try {
+        const res = await fetch(`/api/reports/hourly?date=${date}`);
+        if (res.status === 401) { showLogin(); return; }
+        const json = await res.json();
+        if (!json.success) return;
+        renderHourly(json.data);
+      } catch (e) {
+        console.error('Failed to load hourly flow', e);
+      }
+    }
+
+    function renderHourly(data) {
+      const labels = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0') + ':00');
+      const totalEl = document.getElementById('hourlyTotal');
+      totalEl.textContent = data.total ? `${data.total} called on ${data.date}` : '';
+
+      const canvas = document.getElementById('hourlyChart');
+      const ctx = canvas.getContext('2d');
+      const empty = !data.total;
+      document.getElementById('hourlyEmpty').classList.toggle('hidden', !empty);
+      canvas.classList.toggle('hidden', empty);
+
+      if (hourlyChart) {
+        hourlyChart.destroy();
+        hourlyChart = null;
+      }
+      if (empty) return;
+
+      const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, 'rgba(37, 99, 235, 0.28)');
+      gradient.addColorStop(1, 'rgba(37, 99, 235, 0.02)');
+
+      const dataset = {
+        label: data.date,
+        data: data.hours.map(count => Number(((count / data.total) * 100).toFixed(1))),
+        rawCounts: data.hours,
+        borderColor: '#2563eb',
+        backgroundColor: gradient,
+        pointBackgroundColor: '#1d4ed8',
+        pointBorderColor: '#fff',
+        pointBorderWidth: 1,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4
+      };
+
+      hourlyChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets: [dataset] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: (items) => `${items[0].label} — ${data.date}`,
+                label: (c) => {
+                  const raw = c.dataset.rawCounts[c.dataIndex];
+                  return `${c.parsed.y}% of day (${raw} called)`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Time of day', color: '#9ca3af', font: { size: 11 } },
+              grid: { display: false },
+              ticks: {
+                font: { size: 10 },
+                maxRotation: 0,
+                autoSkip: false,
+                callback: (val, index) => index % 2 === 0 ? labels[index] : ''
+              }
+            },
+            y: {
+              beginAtZero: true,
+              max: 100,
+              ticks: { font: { size: 10 }, callback: (v) => v + '%' },
+              grid: { color: '#f3f4f6' }
+            }
+          }
+        }
+      });
+    }
+
+    function renderReport(data) {
+      document.getElementById('kpiTotal').textContent = data.totals.total;
+      document.getElementById('kpiPriority').textContent = data.totals.priority;
+      document.getElementById('kpiRegular').textContent = data.totals.regular;
+      document.getElementById('kpiCompleted').textContent = data.totals.completed;
+      document.getElementById('kpiSkipped').textContent = data.totals.skipped;
+      document.getElementById('chartRange').textContent = `${data.from} → ${data.to} · by ${data.groupBy}`;
+
+      const labels = data.series.map(r => r.bucket);
+      const priority = data.series.map(r => r.priority);
+      const regular = data.series.map(r => r.regular);
+
+      const empty = data.series.length === 0;
+      document.getElementById('chartEmpty').classList.toggle('hidden', !empty);
+      document.getElementById('reportChart').classList.toggle('hidden', empty);
+
+      if (reportChart) {
+        reportChart.destroy();
+        reportChart = null;
+      }
+
+      if (!empty) {
+        const ctx = document.getElementById('reportChart').getContext('2d');
+        reportChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Priority (Senior/PWD/Pregnant)',
+                data: priority,
+                backgroundColor: '#f59e0b',
+                borderRadius: 4
+              },
+              {
+                label: 'Regular',
+                data: regular,
+                backgroundColor: '#15803d',
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+              y: { beginAtZero: true, ticks: { precision: 0, font: { size: 11 } }, grid: { color: '#f3f4f6' } }
+            }
+          }
+        });
+      }
+
+      // --- By Doctor / Station table ---
+      const tbody = document.getElementById('doctorTableBody');
+      const doctorEmpty = document.getElementById('doctorEmpty');
+      const stations = data.byStation || [];
+      if (!stations.length) {
+        tbody.innerHTML = '';
+        doctorEmpty.classList.remove('hidden');
+      } else {
+        doctorEmpty.classList.add('hidden');
+        const typeIcon = t => t === 'medical' ? '🩺' : (t === 'dental' ? '🦷' : '💊');
+        tbody.innerHTML = stations.map(d => `
+          <tr>
+            <td class="py-2.5 font-bold text-gray-700">
+              <span class="mr-1">${typeIcon(d.stationType)}</span>${d.stationName}
+              <span class="text-gray-400 font-normal ml-1">(C${d.counterNumber})</span>
+            </td>
+            <td class="py-2.5 text-right mono font-bold text-gray-900">${d.total}</td>
+            <td class="py-2.5 text-right mono font-bold text-amber-700">${d.priority}</td>
+            <td class="py-2.5 text-right mono font-bold text-green-800">${d.regular}</td>
+            <td class="py-2.5 text-right mono font-bold text-blue-700">${d.completed}</td>
+            <td class="py-2.5 text-right mono font-bold text-gray-400">${d.skipped}</td>
+          </tr>
+        `).join('');
+      }
+
+      // --- Per-Doctor Chart ---
+      document.getElementById('doctorChartRange').textContent = `${data.from} → ${data.to}`;
+      const dChartEmpty = !stations.length;
+      document.getElementById('doctorChartEmpty').classList.toggle('hidden', !dChartEmpty);
+      document.getElementById('doctorChart').classList.toggle('hidden', dChartEmpty);
+
+      if (doctorChart) {
+        doctorChart.destroy();
+        doctorChart = null;
+      }
+
+      if (!dChartEmpty) {
+        const dCtx = document.getElementById('doctorChart').getContext('2d');
+        const doctorColors = ['#15803d', '#0d9488', '#2563eb', '#7c3aed', '#ea580c'];
+        doctorChart = new Chart(dCtx, {
+          type: 'bar',
+          data: {
+            labels: stations.map(d => d.stationName),
+            datasets: [
+              {
+                label: 'Priority',
+                data: stations.map(d => d.priority),
+                backgroundColor: '#f59e0b',
+                borderRadius: 4
+              },
+              {
+                label: 'Regular',
+                data: stations.map(d => d.regular),
+                backgroundColor: '#15803d',
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+              tooltip: {
+                callbacks: {
+                  afterBody: (items) => {
+                    const idx = items[0].dataIndex;
+                    const s = stations[idx];
+                    return `Completed: ${s.completed} · Skipped: ${s.skipped}`;
+                  }
+                }
+              }
+            },
+            scales: {
+              x: { beginAtZero: true, stacked: true, ticks: { precision: 0, font: { size: 11 } }, grid: { color: '#f3f4f6' } },
+              y: { stacked: true, grid: { display: false }, ticks: { font: { size: 12, weight: 'bold' } } }
+            }
+          }
+        });
+      }
+    }
+
+    function exportCsv() {
+      if (!lastReport) return;
+      const rows = [['Bucket', 'Total', 'Priority', 'Regular', 'Completed', 'Skipped']];
+      lastReport.series.forEach(r => rows.push([r.bucket, r.total, r.priority, r.regular, r.completed, r.skipped]));
+      rows.push([]);
+      rows.push(['TOTAL', lastReport.totals.total, lastReport.totals.priority, lastReport.totals.regular, lastReport.totals.completed, lastReport.totals.skipped]);
+      rows.push([]);
+      rows.push(['--- BY DOCTOR / STATION ---']);
+      rows.push(['Doctor', 'Counter', 'Type', 'Total', 'Priority', 'Regular', 'Completed', 'Skipped']);
+      (lastReport.byStation || []).forEach(d => rows.push([d.stationName, 'C' + d.counterNumber, d.stationType, d.total, d.priority, d.regular, d.completed, d.skipped]));
+
+      const csv = rows.map(r => r.join(',')).join('\r\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cho-reports_${lastReport.from}_to_${lastReport.to}_${lastReport.groupBy}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function exportPdf() {
+      if (!lastReport) {
+        alert('Reports are still loading. Please try again in a moment.');
+        return;
+      }
+      if (!window.jspdf || !window.jspdf.jsPDF) {
+        alert('PDF library failed to load. Please check your connection and reload.');
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      const pageW = doc.internal.pageSize.getWidth();
+      const pageH = doc.internal.pageSize.getHeight();
+      const margin = 40;
+      const contentW = pageW - margin * 2;
+      const report = lastReport;
+      let cursorY = 0;
+
+      // --- Header ---
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(20);
+      doc.text('City Health Office II — Naga', margin, 46);
+      doc.setFontSize(12);
+      doc.text('Queue Reports', margin, 64);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(110);
+      doc.text(`Range: ${report.from} → ${report.to}   |   Group by: ${report.groupBy}`, margin, 80);
+      const generated = new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila' });
+      doc.text(`Generated: ${generated}`, margin, 94);
+      doc.setTextColor(20);
+      cursorY = 108;
+
+      // --- KPI summary ---
+      doc.autoTable({
+        startY: cursorY,
+        head: [['Total Called', 'Priority', 'Regular', 'Completed', 'Skipped']],
+        body: [[
+          report.totals.total,
+          report.totals.priority,
+          report.totals.regular,
+          report.totals.completed,
+          report.totals.skipped
+        ]],
+        theme: 'grid',
+        styles: { fontSize: 9, halign: 'center', cellPadding: 5 },
+        headStyles: { fillColor: [21, 128, 61], textColor: 255, fontStyle: 'bold' },
+        margin: { left: margin, right: margin }
+      });
+      cursorY = doc.lastAutoTable.finalY + 18;
+
+      // --- Priority vs Regular series ---
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text(`Priority vs Regular (by ${report.groupBy})`, margin, cursorY);
+      doc.autoTable({
+        startY: cursorY + 6,
+        head: [['Bucket', 'Total', 'Priority', 'Regular', 'Completed', 'Skipped']],
+        body: report.series.length
+          ? report.series.map(r => [r.bucket, r.total, r.priority, r.regular, r.completed, r.skipped])
+          : [['No data', '-', '-', '-', '-', '-']],
+        foot: [['TOTAL', report.totals.total, report.totals.priority, report.totals.regular, report.totals.completed, report.totals.skipped]],
+        theme: 'striped',
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [21, 128, 61], textColor: 255, fontStyle: 'bold' },
+        footStyles: { fillColor: [240, 240, 240], textColor: 20, fontStyle: 'bold' },
+        margin: { left: margin, right: margin }
+      });
+      cursorY = doc.lastAutoTable.finalY + 18;
+
+      // --- By doctor / station ---
+      const stations = report.byStation || [];
+      if (cursorY > pageH - 120) { doc.addPage(); cursorY = 48; }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('By Doctor / Station', margin, cursorY);
+      doc.autoTable({
+        startY: cursorY + 6,
+        head: [['Doctor', 'Counter', 'Type', 'Total', 'Priority', 'Regular', 'Completed', 'Skipped']],
+        body: stations.length
+          ? stations.map(s => [s.stationName, 'C' + s.counterNumber, s.stationType, s.total, s.priority, s.regular, s.completed, s.skipped])
+          : [['No data', '-', '-', '-', '-', '-', '-', '-']],
+        theme: 'grid',
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [21, 128, 61], textColor: 255, fontStyle: 'bold' },
+        margin: { left: margin, right: margin }
+      });
+      cursorY = doc.lastAutoTable.finalY + 20;
+
+      // --- Embedded charts (skip empty/hidden ones) ---
+      const charts = [
+        ['reportChart', 'Priority vs Regular'],
+        ['hourlyChart', 'Hourly Patient Flow'],
+        ['doctorChart', 'Patients Per Doctor']
+      ];
+
+      for (const [id, title] of charts) {
+        const canvas = document.getElementById(id);
+        if (!canvas || canvas.classList.contains('hidden') || !canvas.width || !canvas.height) continue;
+
+        const imgH = contentW * (canvas.height / canvas.width);
+        if (cursorY + imgH + 28 > pageH - 40) {
+          doc.addPage();
+          cursorY = 48;
+        }
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(20);
+        doc.text(title, margin, cursorY);
+        try {
+          doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, cursorY + 8, contentW, imgH);
+        } catch (e) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.text('(chart could not be rendered)', margin, cursorY + 18);
+        }
+        cursorY += imgH + 28;
+      }
+
+      // --- Page footers ---
+      const pages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pages; i++) {
+        doc.setPage(i);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(`CHO II Queue Reports — page ${i} of ${pages}`, margin, pageH - 20);
+      }
+
+      doc.save(`cho-reports_${report.from}_to_${report.to}_${report.groupBy}.pdf`);
+    }
+
+    setDefaultDates();
+    checkSession();
+  </script>
+</body>
+
+</html>

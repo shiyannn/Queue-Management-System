@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node test_queue.js",
+    "test": "node test_queue.js && node test_api.js",
+    "test:queue": "node test_queue.js",
+    "test:api": "node test_api.js",
     "reset": "node reset_db.js"
   },
   "keywords": [],
