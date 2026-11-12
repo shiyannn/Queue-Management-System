@@ -40,25 +40,49 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-3 sm:gap-6 shrink-0">
+      <!-- Desktop Links (No icons, text only) -->
+      <nav class="hidden md:flex items-center gap-6 shrink-0">
         <a href="/display" target="_blank"
-          class="text-xs sm:text-sm font-semibold text-gray-600 hover:text-green-700 transition-colors flex items-center gap-1.5 sm:gap-2">
-          <i class="fa-solid fa-tv text-xs"></i> <span class="hidden sm:inline">TV </span>Display
+          class="text-xs sm:text-sm font-semibold text-gray-600 hover:text-green-700 transition-colors">
+          TV Display
         </a>
         <a href="/staff" target="_blank"
-          class="text-xs sm:text-sm font-semibold text-gray-600 hover:text-green-700 transition-colors flex items-center gap-1.5 sm:gap-2">
-          <i class="fa-solid fa-user-doctor text-xs"></i> <span class="hidden sm:inline">Doctor &amp; Staff
-          </span>Terminal
+          class="text-xs sm:text-sm font-semibold text-gray-600 hover:text-green-700 transition-colors">
+          Doctor &amp; Staff Terminal
         </a>
         <a href="/reports"
-          class="text-xs sm:text-sm font-semibold text-gray-600 hover:text-green-700 transition-colors flex items-center gap-1.5 sm:gap-2">
-          <i class="fa-solid fa-chart-column text-xs"></i> <span class="hidden sm:inline">Reports</span>
+          class="text-xs sm:text-sm font-semibold text-gray-600 hover:text-green-700 transition-colors">
+          Reports
         </a>
         <div id="liveTime"
-          class="mono text-xs text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg font-bold border border-gray-200 hidden md:block">
+          class="mono text-xs text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg font-bold border border-gray-200">
           --:--:--
         </div>
+      </nav>
+
+      <!-- Mobile Hamburger Button -->
+      <div class="flex items-center gap-2 md:hidden">
+        <button id="mobileMenuBtn" onclick="toggleMobileMenu()" aria-label="Toggle Navigation"
+          class="w-9 h-9 flex items-center justify-center text-gray-700 hover:text-green-700 bg-gray-100 hover:bg-green-50 rounded-lg transition-colors border border-gray-200 cursor-pointer">
+          <i id="hamburgerIcon" class="fa-solid fa-bars text-sm"></i>
+        </button>
       </div>
+    </div>
+
+    <!-- Mobile Dropdown Menu -->
+    <div id="mobileMenu" class="hidden md:hidden border-t border-gray-100 bg-white px-4 py-3 space-y-1 shadow-md">
+      <a href="/display" target="_blank"
+        class="block py-2.5 px-3 rounded-lg text-sm font-semibold text-gray-700 hover:bg-green-50 hover:text-green-800 transition-colors">
+        TV Display
+      </a>
+      <a href="/staff" target="_blank"
+        class="block py-2.5 px-3 rounded-lg text-sm font-semibold text-gray-700 hover:bg-green-50 hover:text-green-800 transition-colors">
+        Doctor &amp; Staff Terminal
+      </a>
+      <a href="/reports"
+        class="block py-2.5 px-3 rounded-lg text-sm font-semibold text-gray-700 hover:bg-green-50 hover:text-green-800 transition-colors">
+        Reports
+      </a>
     </div>
   </header>
 
@@ -88,8 +112,8 @@
         </div>
 
         <!-- Hero image -->
-        <div class="hidden lg:flex items-center justify-center w-full lg:max-w-md select-none" aria-hidden="true">
-          <img src="/hero.jpg" alt="City Health Office Consultation Room" class="w-full h-auto max-h-[420px] object-contain">
+        <div class="flex items-center justify-center w-full max-w-xs sm:max-w-sm lg:max-w-md mx-auto select-none mt-4 lg:mt-0" aria-hidden="true">
+          <img src="/hero.jpg" alt="City Health Office Consultation Room" class="w-full h-auto max-h-[300px] sm:max-h-[360px] lg:max-h-[420px] object-contain">
         </div>
 
         <!-- Live stats kept for real-time JS, hidden from view -->
@@ -163,6 +187,21 @@
 
   <script>
     const socket = io();
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobileMenu');
+      const icon = document.getElementById('hamburgerIcon');
+      const isOpen = !menu.classList.contains('hidden');
+      if (isOpen) {
+        menu.classList.add('hidden');
+        icon.classList.remove('fa-xmark');
+        icon.classList.add('fa-bars');
+      } else {
+        menu.classList.remove('hidden');
+        icon.classList.remove('fa-bars');
+        icon.classList.add('fa-xmark');
+      }
+    }
 
     function updateClock() {
       const now = new Date();
