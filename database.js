@@ -41,6 +41,7 @@ function initializeDatabase() {
       notes TEXT,
       status TEXT NOT NULL DEFAULT 'CALLED', -- 'CALLED', 'SERVING', 'HOLD', 'SKIPPED', 'COMPLETED'
       archived INTEGER NOT NULL DEFAULT 0, -- 1 = kept for reports but cleared from the live queue
+      is_internal INTEGER NOT NULL DEFAULT 0, -- 1 = staff/nurse call (not a patient, excluded from reports)
       queue_date TEXT NOT NULL, -- YYYY-MM-DD
       sequence_number INTEGER NOT NULL,
       created_at TEXT NOT NULL,
@@ -77,13 +78,37 @@ function initializeDatabase() {
   try {
     db.exec(`ALTER TABLE tickets ADD COLUMN archived INTEGER NOT NULL DEFAULT 0;`);
   } catch (e) { }
+  try {
+    db.exec(`ALTER TABLE tickets ADD COLUMN is_internal INTEGER NOT NULL DEFAULT 0;`);
+  } catch (e) { }
 
   // Index created after the ALTER so older databases pick up the new column first.
   db.exec(`CREATE INDEX IF NOT EXISTS idx_tickets_archived ON tickets(archived);`);
 
+  // Backfill: patient tokens start with R / P / D / Rx. Anything else in old data
+  // was a staff/nurse call, so mark it internal and keep it out of reports.
+  db.exec(`
+    UPDATE tickets
+    SET is_internal = 1
+    WHERE is_internal = 0
+      AND ticket_number NOT LIKE 'R%'
+      AND ticket_number NOT LIKE 'P%'
+      AND ticket_number NOT LIKE 'D%';
+  `);
+
   // Ensure default categories & stations are seeded
   syncDefaultCategories();
   syncDefaultStations();
+  ensureInternalCategory();
+}
+
+// Staff / nurse calls need a category because tickets.category_id is NOT NULL,
+// even though these rows are excluded from all patient reports.
+function ensureInternalCategory() {
+  db.prepare(`
+    INSERT OR IGNORE INTO categories (name, prefix, department, priority_rank, description, active)
+    VALUES ('Staff / Internal Call', 'S', 'internal', 99, 'Nurse / assistant calls (not patients)', 1)
+  `).run();
 }
 
 function syncDefaultCategories() {

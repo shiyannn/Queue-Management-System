@@ -151,6 +151,31 @@ function run() {
   const reportAfterNewCall = queueService.getReportSummary(today, today, 'day');
   check('reports add new calls after reset', reportAfterNewCall.totals.total === reportAfterReset.totals.total + 1, `${reportAfterNewCall.totals.total} vs ${reportAfterReset.totals.total + 1}`);
 
+  console.log('\n=== Staff / internal calls ===');
+  const reportBeforeStaff = queueService.getReportSummary(today, today, 'day');
+  const statsBeforeStaff = queueService.getDailyStats().totalCalled;
+  const hourlyBeforeStaff = queueService.getHourlyCounts(today).total;
+  const nextBeforeStaff = queueService.getNextExpected();
+
+  const staff1 = queueService.callSpecificNumber(medA, 'S-1');
+  check('staff call stored as S-1', staff1.ticket_number === 'S-1', staff1.ticket_number);
+  check('staff call flagged internal', staff1.is_internal === 1, String(staff1.is_internal));
+  check('staff call does not complete active patient', queueService.getTicketById(afterReset.id).status === 'CALLED');
+  check('active patient still current at counter', queueService.getCurrentTicketForStation(medA).ticket_number === 'R-1');
+  check('staff call still appears in recent calls', queueService.getRecentCalls(10).some(t => t.ticket_number === 'S-1'));
+  check('staff call still appears in station history', queueService.getStationHistory(medA).some(t => t.ticket_number === 'S-1'));
+  check('display board keeps showing active patient, not staff', queueService.getActiveDisplayBoard().find(s => s.counter_number === 1).ticket_number === 'R-1');
+  check('staff call hidden from patient lookup', queueService.lookupTicket('S-1').length === 0);
+  check('staff call does not advance patient sequence', queueService.getNextExpected().medical[0] === nextBeforeStaff.medical[0], `${queueService.getNextExpected().medical[0]} vs ${nextBeforeStaff.medical[0]}`);
+  check('staff call excluded from report totals', queueService.getReportSummary(today, today, 'day').totals.total === reportBeforeStaff.totals.total);
+  check('staff call excluded from hourly flow', queueService.getHourlyCounts(today).total === hourlyBeforeStaff);
+  check('staff call excluded from daily stats', queueService.getDailyStats().totalCalled === statsBeforeStaff);
+
+  const staff2 = queueService.callSpecificNumber(medA, 'S-2');
+  check('new staff call stored as S-2', staff2.ticket_number === 'S-2', staff2.ticket_number);
+  check('previous staff call auto-completed', queueService.getTicketById(staff1.id).status === 'COMPLETED');
+  check('new staff call still does not complete active patient', queueService.getTicketById(afterReset.id).status === 'CALLED');
+
   console.log('\n================ SUMMARY ================');
   console.log(`PASSED: ${pass}`);
   console.log(`FAILED: ${fail}`);

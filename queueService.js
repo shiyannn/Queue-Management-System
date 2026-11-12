@@ -5,6 +5,18 @@ function getTodayString() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila' }).format(new Date());
 }
 
+// Patient tokens use the R / P / D / Rx prefixes. Anything else (e.g. S-1, N-2)
+// is an internal call to a nurse/assistant and must not count as a patient.
+function isPatientToken(ticketNumber) {
+  return /^(R|P|D|RX)/.test(String(ticketNumber || '').trim().toUpperCase());
+}
+
+function getInternalCategoryId() {
+  const row = db.prepare(`SELECT id FROM categories WHERE prefix = 'S'`).get();
+  if (!row) throw new Error('Internal staff category is missing');
+  return row.id;
+}
+
 const queueService = {
   getTodayString,
 
@@ -43,10 +55,25 @@ const queueService = {
       WHERE t.current_station_id = ? 
         AND t.status IN ('CALLED', 'SERVING') 
         AND t.archived = 0
+        AND t.is_internal = 0
         AND t.queue_date = ?
       ORDER BY t.called_at DESC
       LIMIT 1
     `).get(stationId, today);
+  },
+
+  // Retire staff/nurse calls still marked active at a counter. These never
+  // count as patients, so they must not linger in the "now serving" state.
+  completeInternalAtStation(stationId, timestamp = new Date().toISOString()) {
+    const today = getTodayString();
+    db.prepare(`
+      UPDATE tickets SET status = 'COMPLETED', completed_at = ?
+      WHERE current_station_id = ?
+        AND is_internal = 1
+        AND status IN ('CALLED', 'SERVING')
+        AND archived = 0
+        AND queue_date = ?
+    `).run(timestamp, stationId, today);
   },
 
   // Call the next sequential pre-printed token in FIFO order (supports regular or priority)
@@ -64,6 +91,7 @@ const queueService = {
         db.prepare(`UPDATE tickets SET status = 'COMPLETED', completed_at = ? WHERE id = ?`).run(nowIso, current.id);
         db.prepare(`INSERT INTO ticket_logs (ticket_id, station_id, action, details, timestamp) VALUES (?, ?, 'COMPLETED', 'Completed on call next', ?)`).run(current.id, stationId, nowIso);
       }
+      this.completeInternalAtStation(stationId, nowIso);
 
       // 2. First check if any transferred ticket is specifically waiting for this station
       const transferredTicket = db.prepare(`
@@ -127,7 +155,7 @@ const queueService = {
   // Call a specific token number (e.g. if patient returned or manual call)
   callSpecificNumber(stationId, inputNumber) {
     if (!inputNumber || !inputNumber.trim()) throw new Error('Ticket number is required');
-    const cleanNumber = inputNumber.trim().toUpperCase();
+    const cleanNumber = inputNumber.trim().replace(/^#/, '').toUpperCase();
     const today = getTodayString();
     const station = db.prepare('SELECT * FROM stations WHERE id = ?').get(stationId);
     if (!station) throw new Error(`Station ${stationId} not found`);
@@ -135,22 +163,30 @@ const queueService = {
     const runTx = db.transaction(() => {
       const nowIso = new Date().toISOString();
 
-      // Complete currently serving ticket at this station
-      const current = this.getCurrentTicketForStation(stationId);
-      if (current) {
-        db.prepare(`UPDATE tickets SET status = 'COMPLETED', completed_at = ? WHERE id = ?`).run(nowIso, current.id);
-        db.prepare(`INSERT INTO ticket_logs (ticket_id, station_id, action, details, timestamp) VALUES (?, ?, 'COMPLETED', 'Completed on specific call', ?)`).run(current.id, stationId, nowIso);
-      }
-
       const isDental = station.type === 'dental';
       const isPharmacy = station.type === 'pharmacy';
-      const dept = isDental ? 'dental' : (isPharmacy ? 'pharmacy' : 'medical');
 
       // Normalize a bare number (e.g. "5") to the station's prefixed token (e.g. "R-5")
       const bareMatch = cleanNumber.match(/^\d+$/);
       const normalizedNumber = bareMatch
         ? (isDental ? `D-${cleanNumber}` : (isPharmacy ? `Rx-${cleanNumber}` : `R-${cleanNumber}`))
         : cleanNumber;
+
+      // Anything that isn't a patient token (R/P/D/Rx) is a staff/nurse call.
+      const isInternal = !isPatientToken(normalizedNumber);
+      const internalFlag = isInternal ? 1 : 0;
+
+      // A staff call must never end the patient currently being served.
+      if (!isInternal) {
+        const current = this.getCurrentTicketForStation(stationId);
+        if (current) {
+          db.prepare(`UPDATE tickets SET status = 'COMPLETED', completed_at = ? WHERE id = ?`).run(nowIso, current.id);
+          db.prepare(`INSERT INTO ticket_logs (ticket_id, station_id, action, details, timestamp) VALUES (?, ?, 'COMPLETED', 'Completed on specific call', ?)`).run(current.id, stationId, nowIso);
+        }
+      }
+      this.completeInternalAtStation(stationId, nowIso);
+      // Use a separate department so staff calls never advance the patient sequence.
+      const dept = isInternal ? 'internal' : (isDental ? 'dental' : (isPharmacy ? 'pharmacy' : 'medical'));
 
       // Check if ticket already exists today (e.g. was SKIPPED or HOLD)
       const existing = db.prepare(`
@@ -159,8 +195,8 @@ const queueService = {
 
       if (existing) {
         db.prepare(`
-          UPDATE tickets SET status = 'CALLED', called_at = ?, current_station_id = ? WHERE id = ?
-        `).run(nowIso, stationId, existing.id);
+          UPDATE tickets SET status = 'CALLED', called_at = ?, current_station_id = ?, is_internal = ? WHERE id = ?
+        `).run(nowIso, stationId, internalFlag, existing.id);
         db.prepare(`
           INSERT INTO ticket_logs (ticket_id, station_id, action, details, timestamp)
           VALUES (?, ?, 'RECALLED', 'Specific recall of existing token', ?)
@@ -169,26 +205,26 @@ const queueService = {
       }
 
       // If new, insert directly
-      const isPriority = normalizedNumber.startsWith('P') || normalizedNumber.startsWith('DP') || normalizedNumber.startsWith('RXP');
+      const isPriority = !isInternal && (normalizedNumber.startsWith('P') || normalizedNumber.startsWith('DP') || normalizedNumber.startsWith('RXP'));
       const priorityFlag = isPriority ? 1 : 0;
-      const defaultCatId = isPriority ? 2 : (isDental ? 3 : (isPharmacy ? 4 : 1));
+      const defaultCatId = isInternal ? getInternalCategoryId() : (isPriority ? 2 : (isDental ? 3 : (isPharmacy ? 4 : 1)));
       const seqMatch = normalizedNumber.match(/\d+/);
       const seqNum = seqMatch ? parseInt(seqMatch[0], 10) : 1;
 
       const insert = db.prepare(`
         INSERT INTO tickets (
           ticket_number, department, is_priority, category_id, current_station_id, status,
-          queue_date, sequence_number, created_at, called_at
-        ) VALUES (?, ?, ?, ?, ?, 'CALLED', ?, ?, ?, ?)
+          queue_date, sequence_number, created_at, called_at, is_internal
+        ) VALUES (?, ?, ?, ?, ?, 'CALLED', ?, ?, ?, ?, ?)
       `);
 
-      const result = insert.run(normalizedNumber, dept, priorityFlag, defaultCatId, stationId, today, seqNum, nowIso, nowIso);
+      const result = insert.run(normalizedNumber, dept, priorityFlag, defaultCatId, stationId, today, seqNum, nowIso, nowIso, internalFlag);
       const ticketId = result.lastInsertRowid;
 
       db.prepare(`
         INSERT INTO ticket_logs (ticket_id, station_id, action, details, timestamp)
         VALUES (?, ?, 'CALLED', ?, ?)
-      `).run(ticketId, stationId, `Called specific token ${normalizedNumber}`, nowIso);
+      `).run(ticketId, stationId, `${isInternal ? 'Called staff token' : 'Called specific token'} ${normalizedNumber}`, nowIso);
 
       return this.getTicketById(ticketId);
     });
@@ -266,6 +302,7 @@ const queueService = {
       WHERE t.status = 'SKIPPED' 
         AND t.department = ?
         AND t.archived = 0
+        AND t.is_internal = 0
         AND t.queue_date = ?
       ORDER BY t.called_at DESC
     `).all(department, today);
@@ -289,6 +326,7 @@ const queueService = {
       LEFT JOIN tickets t ON t.current_station_id = s.id 
         AND t.status IN ('CALLED', 'SERVING') 
         AND t.archived = 0
+        AND t.is_internal = 0
         AND t.queue_date = ?
       WHERE s.active = 1
       ORDER BY s.counter_number ASC
@@ -298,11 +336,11 @@ const queueService = {
   // Next expected token numbers (regular + priority)
   getNextExpected() {
     const today = getTodayString();
-    const medMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'medical' AND is_priority = 0 AND archived = 0 AND queue_date = ?`).get(today);
-    const priorityMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'medical' AND is_priority = 1 AND archived = 0 AND queue_date = ?`).get(today);
-    const dentMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'dental' AND is_priority = 0 AND archived = 0 AND queue_date = ?`).get(today);
-    const dentPriorityMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'dental' AND is_priority = 1 AND archived = 0 AND queue_date = ?`).get(today);
-    const pharmMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'pharmacy' AND archived = 0 AND queue_date = ?`).get(today);
+    const medMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'medical' AND is_priority = 0 AND archived = 0 AND is_internal = 0 AND queue_date = ?`).get(today);
+    const priorityMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'medical' AND is_priority = 1 AND archived = 0 AND is_internal = 0 AND queue_date = ?`).get(today);
+    const dentMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'dental' AND is_priority = 0 AND archived = 0 AND is_internal = 0 AND queue_date = ?`).get(today);
+    const dentPriorityMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'dental' AND is_priority = 1 AND archived = 0 AND is_internal = 0 AND queue_date = ?`).get(today);
+    const pharmMax = db.prepare(`SELECT MAX(sequence_number) as m FROM tickets WHERE department = 'pharmacy' AND archived = 0 AND is_internal = 0 AND queue_date = ?`).get(today);
 
     const nextMed = (medMax && medMax.m ? medMax.m : 0) + 1;
     const nextPriority = (priorityMax && priorityMax.m ? priorityMax.m : 0) + 1;
@@ -368,7 +406,7 @@ const queueService = {
         SUM(CASE WHEN status = 'SKIPPED' THEN 1 ELSE 0 END) as skipped_count,
         SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) as completed_count
       FROM tickets
-      WHERE archived = 0 AND queue_date = ?
+      WHERE archived = 0 AND is_internal = 0 AND queue_date = ?
     `).get(today);
 
     return {
@@ -426,6 +464,7 @@ const queueService = {
       LEFT JOIN stations s ON t.current_station_id = s.id
       WHERE t.queue_date = ? 
         AND t.archived = 0
+        AND t.is_internal = 0
         AND (t.ticket_number = ? OR t.ticket_number LIKE ?)
       ORDER BY t.called_at DESC
       LIMIT 10
@@ -436,7 +475,7 @@ const queueService = {
   getHourlyCounts(date) {
     const rows = db.prepare(`
       SELECT called_at FROM tickets
-      WHERE queue_date = ? AND called_at IS NOT NULL
+      WHERE queue_date = ? AND called_at IS NOT NULL AND is_internal = 0
     `).all(date);
 
     const hours = new Array(24).fill(0);
@@ -471,7 +510,7 @@ const queueService = {
         SUM(CASE WHEN status = 'SKIPPED' THEN 1 ELSE 0 END) AS skipped,
         SUM(CASE WHEN status IN ('CALLED', 'SERVING') THEN 1 ELSE 0 END) AS serving
       FROM tickets
-      WHERE queue_date BETWEEN ? AND ?
+      WHERE queue_date BETWEEN ? AND ? AND is_internal = 0
     `).get(from, to);
 
     const series = db.prepare(`
@@ -483,7 +522,7 @@ const queueService = {
         SUM(CASE WHEN status = 'COMPLETED' THEN 1 ELSE 0 END) AS completed,
         SUM(CASE WHEN status = 'SKIPPED' THEN 1 ELSE 0 END) AS skipped
       FROM tickets
-      WHERE queue_date BETWEEN ? AND ?
+      WHERE queue_date BETWEEN ? AND ? AND is_internal = 0
       GROUP BY bucket
       ORDER BY bucket ASC
     `).all(from, to);
@@ -502,7 +541,7 @@ const queueService = {
         SUM(CASE WHEN t.status = 'SKIPPED' THEN 1 ELSE 0 END) AS skipped
       FROM tickets t
       JOIN stations s ON t.current_station_id = s.id
-      WHERE t.queue_date BETWEEN ? AND ?
+      WHERE t.queue_date BETWEEN ? AND ? AND t.is_internal = 0
       GROUP BY s.id
       ORDER BY s.counter_number ASC
     `).all(from, to);
