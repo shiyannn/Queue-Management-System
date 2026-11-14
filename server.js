@@ -20,7 +20,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ---- Simple admin session (protects reports + queue reset) ----
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'shiyanpogi';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'cho-cho';
 const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const adminSessions = new Map();
 
@@ -92,6 +92,32 @@ app.get('/api/stations', (req, res) => {
   try {
     const stations = queueService.getStations();
     res.json({ success: true, data: stations });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 1b. Update Station Online/Duty Status
+app.post('/api/stations/:id/status', (req, res) => {
+  try {
+    const stationId = Number(req.params.id);
+    const { isOnline, onBreak, status } = req.body || {};
+    
+    let target = status;
+    if (!target) {
+      if (onBreak) target = 'ON_BREAK';
+      else if (isOnline !== undefined) target = isOnline ? 'ON_DUTY' : 'OFFLINE';
+      else target = 'ON_DUTY';
+    }
+
+    const info = queueService.setStationStatus(stationId, target);
+    
+    notifyQueueUpdate('station:status_changed', {
+      stationId,
+      ...info
+    });
+
+    res.json({ success: true, data: { stationId, ...info } });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -347,13 +373,79 @@ app.get('/staff', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'staff.html'));
 });
 
-// Socket.io Handshake
+// Socket.io Handshake & Active Station Tracking
+const stationSockets = new Map(); // stationId -> Set of socket.id's
+const disconnectTimers = new Map(); // stationId -> timeoutId
+
 io.on('connection', (socket) => {
+  let attachedStationId = null;
+
   socket.emit('queue:updated', {
     displayBoard: queueService.getActiveDisplayBoard(),
     nextExpected: queueService.getNextExpected(),
     recentCalls: queueService.getRecentCalls(6),
     stats: queueService.getDailyStats()
+  });
+
+  // Doctor joins / opens a terminal counter
+  socket.on('station:join', ({ stationId }) => {
+    if (!stationId) return;
+    const sId = Number(stationId);
+    attachedStationId = sId;
+
+    // Clear any pending disconnect timer (e.g. from page refresh)
+    if (disconnectTimers.has(sId)) {
+      clearTimeout(disconnectTimers.get(sId));
+      disconnectTimers.delete(sId);
+    }
+
+    if (!stationSockets.has(sId)) {
+      stationSockets.set(sId, new Set());
+    }
+    stationSockets.get(sId).add(socket.id);
+
+    // Automatically set station Online
+    queueService.setStationStatus(sId, true);
+    notifyQueueUpdate('station:status_changed', { stationId: sId, isOnline: true });
+  });
+
+  // Doctor leaves / switches counter manually
+  socket.on('station:leave', ({ stationId }) => {
+    const sId = Number(stationId || attachedStationId);
+    if (!sId) return;
+    if (stationSockets.has(sId)) {
+      stationSockets.get(sId).delete(socket.id);
+      if (stationSockets.get(sId).size === 0) {
+        stationSockets.delete(sId);
+        queueService.setStationStatus(sId, false);
+        notifyQueueUpdate('station:status_changed', { stationId: sId, isOnline: false });
+      }
+    }
+    attachedStationId = null;
+  });
+
+  // Doctor closes browser tab, powers down, or loses connection
+  socket.on('disconnect', () => {
+    if (!attachedStationId) return;
+    const sId = attachedStationId;
+    if (stationSockets.has(sId)) {
+      const set = stationSockets.get(sId);
+      set.delete(socket.id);
+
+      if (set.size === 0) {
+        // Start a 5-second grace period in case of quick page refresh
+        const timer = setTimeout(() => {
+          if (!stationSockets.has(sId) || stationSockets.get(sId).size === 0) {
+            stationSockets.delete(sId);
+            queueService.setStationStatus(sId, false);
+            notifyQueueUpdate('station:status_changed', { stationId: sId, isOnline: false });
+          }
+          disconnectTimers.delete(sId);
+        }, 5000);
+
+        disconnectTimers.set(sId, timer);
+      }
+    }
   });
 });
 
@@ -367,6 +459,6 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`   - Control Hub:                http://localhost:${PORT}/`);
   console.log(`====================================================`);
   if (!process.env.ADMIN_PASSWORD) {
-    console.log('⚠️  ADMIN_PASSWORD not set — using default "shiyanpogi". Set it in the environment for production.');
+    console.log('⚠️  ADMIN_PASSWORD not set — using default "cho-cho". Set it in the environment for production.');
   }
 });

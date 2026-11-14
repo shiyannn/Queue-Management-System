@@ -103,6 +103,14 @@
 
         <!-- Quick Actions -->
         <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+          <!-- Duty Status Toggle Switch (On Duty vs On Break) -->
+          <button id="dutyStatusBtn" onclick="toggleDutyStatus()"
+            title="Click to toggle between On Duty and On Break"
+            class="text-xs font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer shadow-xs bg-green-50 border-green-300 text-green-800 hover:bg-green-100">
+            <span class="w-2 h-2 rounded-full bg-green-600 animate-pulse"></span>
+            <span id="dutyStatusText">On Duty</span>
+          </button>
+
           <div id="terminalClock" class="mono text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-lg hidden md:block">
             --:--:--</div>
 
@@ -375,6 +383,52 @@
     let stations = [];
     let currentStationId = null;
     let activeTicket = null;
+    let isCurrentStationOnline = true;
+
+    async function setDutyStatusOnServer(stationId, status) {
+      try {
+        await fetch(`/api/stations/${stationId}/status`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+      } catch (err) {
+        console.error('Failed to set duty status:', err);
+      }
+    }
+
+    function updateDutyStatusButtonUI(statusOrOnline) {
+      const isOnline = (typeof statusOrOnline === 'object' && statusOrOnline !== null)
+        ? (statusOrOnline.status === 'ON_DUTY')
+        : (statusOrOnline === 'ON_DUTY' || statusOrOnline === true);
+
+      isCurrentStationOnline = isOnline;
+      const btn = document.getElementById('dutyStatusBtn');
+      if (!btn) return;
+
+      if (isCurrentStationOnline) {
+        btn.className = 'text-xs font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer shadow-xs bg-green-50 border-green-300 text-green-800 hover:bg-green-100';
+        btn.innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-green-600 animate-pulse"></span>
+          <span>On Duty</span>
+        `;
+        btn.title = "Click to set On Break (visible as On Break on TV Display)";
+      } else {
+        btn.className = 'text-xs font-bold px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer shadow-xs bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100';
+        btn.innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+          <span>On Break</span>
+        `;
+        btn.title = "Click to resume Duty (visible as Ready / Calling on TV Display)";
+      }
+    }
+
+    async function toggleDutyStatus() {
+      if (!currentStationId) return;
+      const newStatus = !isCurrentStationOnline;
+      updateDutyStatusButtonUI(newStatus);
+      await setDutyStatusOnServer(currentStationId, newStatus ? 'ON_DUTY' : 'ON_BREAK');
+    }
 
     async function init() {
       await loadStations();
@@ -467,10 +521,20 @@
       document.getElementById('pickerScreen').classList.add('hidden');
       document.getElementById('terminalScreen').classList.remove('hidden');
 
+      // Automatically set this station as ONLINE / ON DUTY
+      updateDutyStatusButtonUI(true);
+      setDutyStatusOnServer(stationId, 'ON_DUTY');
+      socket.emit('station:join', { stationId });
+
       updateTerminalView();
     }
 
     function switchCounter() {
+      if (currentStationId) {
+        // Automatically set this station to OFFLINE when switching out
+        socket.emit('station:leave', { stationId: currentStationId });
+        setDutyStatusOnServer(currentStationId, 'OFFLINE');
+      }
       localStorage.removeItem(LS_KEY);
       currentStationId = null;
       activeTicket = null;
@@ -613,15 +677,19 @@
       const container = document.getElementById('otherCountersList');
       if (!board) return;
       container.innerHTML = board.map(st => `
-      <div class="flex items-center justify-between p-2.5 rounded-xl border ${st.ticket_number ? 'border-green-200 bg-green-50/50' : 'border-gray-100 bg-gray-50'} text-xs">
+      <div class="flex items-center justify-between p-2.5 rounded-xl border ${st.on_break ? 'border-amber-200 bg-amber-50/50' : (st.ticket_number ? 'border-green-200 bg-green-50/50' : 'border-gray-100 bg-gray-50')} text-xs">
         <div class="flex items-center gap-2">
           <span class="mono font-bold text-gray-600">C${st.counter_number}</span>
           <span class="font-medium text-gray-800">${st.station_name}</span>
         </div>
         <div>
-          ${st.ticket_number
-          ? `<span class="mono font-black text-green-800 bg-white border border-green-200 px-2 py-0.5 rounded-md">#${st.ticket_number}</span>`
-          : `<span class="text-gray-400 italic">Ready</span>`
+          ${st.on_break
+          ? `<span class="text-amber-800 font-bold text-[11px] bg-amber-100 px-2 py-0.5 rounded border border-amber-300"><i class="fa-solid fa-mug-hot text-[10px] mr-1"></i>On Break</span>`
+          : (st.ticket_number
+              ? `<span class="mono font-black text-green-800 bg-white border border-green-200 px-2 py-0.5 rounded-md">#${st.ticket_number}</span>`
+              : (st.is_online 
+                  ? `<span class="text-green-600 font-semibold text-[11px]">Ready</span>`
+                  : `<span class="text-gray-400 font-medium text-[11px] italic">Offline</span>`))
         }
         </div>
       </div>
@@ -731,7 +799,12 @@
 
     socket.on('queue:updated', () => {
       if (currentStationId) updateTerminalView();
+    });
 
+    socket.on('station:status_changed', (info) => {
+      if (currentStationId && Number(info.stationId) === Number(currentStationId)) {
+        updateDutyStatusButtonUI(info.status === 'ON_DUTY');
+      }
     });
 
     init();

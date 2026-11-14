@@ -17,12 +17,86 @@ function getInternalCategoryId() {
   return row.id;
 }
 
+// Track active/online stations in memory (stationId -> { isOnline: boolean, onBreak: boolean, status: string, updatedAt: timestamp })
+const stationStatusMap = new Map();
+
 const queueService = {
   getTodayString,
 
+  // Set station online/offline / on_break status
+  setStationStatus(stationId, statusOrOnline) {
+    let isOnline = false;
+    let onBreak = false;
+    let status = 'OFFLINE';
+
+    if (typeof statusOrOnline === 'object' && statusOrOnline !== null) {
+      if (statusOrOnline.status === 'ON_BREAK' || statusOrOnline.onBreak) {
+        isOnline = true;
+        onBreak = true;
+        status = 'ON_BREAK';
+      } else if (statusOrOnline.status === 'OFFLINE' || statusOrOnline.isOnline === false) {
+        isOnline = false;
+        onBreak = false;
+        status = 'OFFLINE';
+      } else {
+        isOnline = true;
+        onBreak = false;
+        status = 'ON_DUTY';
+      }
+    } else if (typeof statusOrOnline === 'string') {
+      const upper = statusOrOnline.toUpperCase();
+      if (upper === 'ON_BREAK' || upper === 'BREAK') {
+        isOnline = true;
+        onBreak = true;
+        status = 'ON_BREAK';
+      } else if (upper === 'OFFLINE') {
+        isOnline = false;
+        onBreak = false;
+        status = 'OFFLINE';
+      } else {
+        isOnline = true;
+        onBreak = false;
+        status = 'ON_DUTY';
+      }
+    } else {
+      isOnline = Boolean(statusOrOnline);
+      onBreak = false;
+      status = isOnline ? 'ON_DUTY' : 'OFFLINE';
+    }
+
+    stationStatusMap.set(Number(stationId), {
+      isOnline,
+      onBreak,
+      status,
+      updatedAt: new Date().toISOString()
+    });
+    return this.getStationStatusInfo(stationId);
+  },
+
+  // Get full status object
+  getStationStatusInfo(stationId) {
+    const s = stationStatusMap.get(Number(stationId));
+    return s || { isOnline: false, onBreak: false, status: 'OFFLINE' };
+  },
+
+  // Get online boolean of a station
+  getStationStatus(stationId) {
+    const info = this.getStationStatusInfo(stationId);
+    return info.isOnline;
+  },
+
   // Get active stations (Doctor 1, Doctor 2, Doctor 3, Doctor 4, Dental Clinic, Pharmacy)
   getStations() {
-    return db.prepare('SELECT * FROM stations WHERE active = 1 ORDER BY counter_number ASC').all();
+    const stations = db.prepare('SELECT * FROM stations WHERE active = 1 ORDER BY counter_number ASC').all();
+    return stations.map(st => {
+      const info = this.getStationStatusInfo(st.id);
+      return {
+        ...st,
+        is_online: info.isOnline,
+        on_break: info.onBreak,
+        duty_status: info.status
+      };
+    });
   },
 
   // Get single ticket details
@@ -311,7 +385,7 @@ const queueService = {
   // Display board data for the TV
   getActiveDisplayBoard() {
     const today = getTodayString();
-    return db.prepare(`
+    const rows = db.prepare(`
       SELECT 
         s.id as station_id,
         s.name as station_name,
@@ -331,6 +405,16 @@ const queueService = {
       WHERE s.active = 1
       ORDER BY s.counter_number ASC
     `).all(today);
+
+    return rows.map(r => {
+      const info = this.getStationStatusInfo(r.station_id);
+      return {
+        ...r,
+        is_online: info.isOnline,
+        on_break: info.onBreak,
+        duty_status: info.status
+      };
+    });
   },
 
   // Next expected token numbers (regular + priority)
